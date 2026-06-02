@@ -1,0 +1,4 @@
+target
+.git
+src/main/resources/databases.properties
+src/main/resources/cloudinary.properties

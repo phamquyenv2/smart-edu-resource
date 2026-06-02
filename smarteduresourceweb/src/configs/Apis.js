@@ -1,6 +1,8 @@
 import axios from "axios";
 import cookies from 'react-cookies'
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/';
+
 export const endpoints = {
     'login': '/login',
     'student-register': '/register/student',
@@ -94,7 +96,7 @@ export const endpoints = {
 
 export const authApis = () => {
     return axios.create({
-        baseURL: 'http://localhost:8080/api/',
+        baseURL: API_BASE_URL,
         headers: {
             'Authorization': `Bearer ${cookies.load('token')}`
         }
@@ -102,5 +104,5 @@ export const authApis = () => {
 }
 
 export default axios.create({
-    baseURL: 'http://localhost:8080/api/'
+    baseURL: API_BASE_URL
 })

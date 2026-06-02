@@ -24,11 +24,10 @@ import com.nimbusds.jwt.SignedJWT;
 @Component
 public class JwtUtils {
 
-    private static final String SECRET = "12345678901234567890123456789012"; // 32 ký tự (AES key)
     private static final long EXPIRATION_MS = 86400000; // 1 ngày
 
     public static String generateToken(String username) throws Exception {
-        JWSSigner signer = new MACSigner(SECRET);
+        JWSSigner signer = new MACSigner(System.getenv("JWT_SECRET"));
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(username)
@@ -48,7 +47,7 @@ public class JwtUtils {
 
     public static String validateTokenAndGetUsername(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifier(SECRET);
+        JWSVerifier verifier = new MACVerifier(System.getenv("JWT_SECRET"));
 
         if (signedJWT.verify(verifier)) {
             Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
