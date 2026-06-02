@@ -20,7 +20,7 @@ import com.cloudinary.utils.ObjectUtils;
 @Configuration
 @EnableWebSecurity
 @EnableTransactionManagement
-@PropertySource(value = "classpath:cloudinary.properties")
+@PropertySource(value = "classpath:cloudinary.properties", ignoreResourceNotFound = true)
 @ComponentScan(
         basePackages = {
             "com.paq.controllers",
@@ -70,16 +70,19 @@ public class SpringSecurityConfigs {
     @Bean
     public Cloudinary cloudinary() {
         return new Cloudinary(ObjectUtils.asMap(
-                "cloud_name", this.getRequiredProperty("cloudinary.cloud_name"),
-                "api_key", this.getRequiredProperty("cloudinary.api_key"),
-                "api_secret", this.getRequiredProperty("cloudinary.api_secret"),
+                "cloud_name", this.getRequiredProperty("CLOUDINARY_CLOUD_NAME", "cloudinary.cloud_name"),
+                "api_key", this.getRequiredProperty("CLOUDINARY_API_KEY", "cloudinary.api_key"),
+                "api_secret", this.getRequiredProperty("CLOUDINARY_API_SECRET", "cloudinary.api_secret"),
                 "secure", true));
     }
 
-    private String getRequiredProperty(String key) {
-        String value = this.env.getProperty(key);
+    private String getRequiredProperty(String environmentKey, String localPropertyKey) {
+        String value = this.env.getProperty(environmentKey);
         if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Missing required config: " + key);
+            value = this.env.getProperty(localPropertyKey);
+        }
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required config: " + environmentKey);
         }
 
         return value;

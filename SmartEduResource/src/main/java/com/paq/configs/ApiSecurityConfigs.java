@@ -1,11 +1,14 @@
 package com.paq.configs;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,6 +27,9 @@ public class ApiSecurityConfigs {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private Environment env;
 
     @Bean
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
@@ -47,8 +53,8 @@ public class ApiSecurityConfigs {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedOrigins(getAllowedOrigins());
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
@@ -57,5 +63,19 @@ public class ApiSecurityConfigs {
         source.registerCorsConfiguration("/**", config);
 
         return source;
+    }
+
+    private List<String> getAllowedOrigins() {
+        List<String> origins = new ArrayList<>(List.of("http://localhost:3000", "http://localhost"));
+        String configuredOrigins = env.getProperty("CORS_ALLOWED_ORIGINS");
+
+        if (configuredOrigins != null && !configuredOrigins.isBlank()) {
+            Arrays.stream(configuredOrigins.split(","))
+                    .map(String::trim)
+                    .filter(origin -> !origin.isBlank())
+                    .forEach(origins::add);
+        }
+
+        return origins;
     }
 }

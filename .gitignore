@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Compiled class file
 *.class
 
@@ -24,5 +23,3 @@
 hs_err_pid*
 replay_pid*
 target/
-=======
->>>>>>> bb960ab5877817180f687c9250ad1d041c862205
