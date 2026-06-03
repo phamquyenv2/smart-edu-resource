@@ -314,7 +314,6 @@ public class DTOMapper {
         dto.setPageCount(resource.getPageCount());
         dto.setIsDeleted(resource.getIsDeleted());
         dto.setUploadBy(toResUserDTO(resource.getUploadBy()));
-        /*
         if (resource.getSubjectSet() != null) {
             dto.setSubjects(resource.getSubjectSet().stream()
                     .map(DTOMapper::toResSubjectDTO)
@@ -338,7 +337,6 @@ public class DTOMapper {
                     .map(DTOMapper::toResCategoryDTO)
                     .collect(Collectors.toList()));
         }
-        */
         return dto;
     }
 

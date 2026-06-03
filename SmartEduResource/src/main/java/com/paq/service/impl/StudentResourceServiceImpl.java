@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.paq.pojo.Resource;
 import com.paq.pojo.response.ResResourceDTO;
@@ -24,6 +25,7 @@ import com.paq.utils.error.IdInvalidException;
  * @author Admin
  */
 @Service
+@Transactional
 public class StudentResourceServiceImpl implements StudentResourceService {
 
     private static final int RELATED_RESOURCE_LIMIT = 5;
@@ -37,6 +39,11 @@ public class StudentResourceServiceImpl implements StudentResourceService {
                 .stream()
                 .map(DTOMapper::toPublicResResourceDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Long countResources(Map<String, String> params) {
+        return this.resourceRepo.countResources(params);
     }
 
     @Override

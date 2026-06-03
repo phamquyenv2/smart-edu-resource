@@ -1,20 +1,21 @@
-import { useEffect, useState } from "react";
-import { Badge, Button, Col, Container, Form, Row } from "react-bootstrap";
+import { useContext, useEffect, useState } from "react";
+import { Alert, Badge, Button, Col, Container, Form, Row } from "react-bootstrap";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import MySpinner from "../../components/common/MySpinner";
 import ResourceCard from "../../components/common/ResourceCard";
+import { MyUserContext } from "../../configs/Context";
 import Apis, { authApis, endpoints } from "../../configs/Apis";
+
+const COMMENT_TYPE = "COMMENT";
+const NOTE_TYPE = "ANNOTATION";
 
 const formatDate = (date) => {
     if (!date) return "";
     return new Date(date).toLocaleDateString("vi-VN");
 };
 
-const getFormatLabel = (format) => {
-    if (!format) return "RESOURCE";
-    return format;
-};
+const getFormatLabel = (format) => format || "RESOURCE";
 
 const formatFileSize = (size) => {
     if (!size) return "";
@@ -49,37 +50,51 @@ const formatLevel = (level) => {
     }
 };
 
-
-const Avatar = ({ name, size = 36 }) => (
-    <div className="rd-avatar" style={{ width: size, height: size, fontSize: size * 0.4 }}>
-        {name.charAt(0)}
-    </div>
-);
+const getInitial = (name) => (name || "?").trim().charAt(0).toUpperCase();
 
 const ResourceDetail = () => {
     const { id } = useParams();
+    const [user] = useContext(MyUserContext);
+    const nav = useNavigate();
+
     const [resource, setResource] = useState(null);
     const [relatedResources, setRelatedResources] = useState([]);
+    const [interactions, setInteractions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState("");
+    const [actionErr, setActionErr] = useState("");
     const [commentText, setCommentText] = useState("");
     const [replyText, setReplyText] = useState("");
     const [replyingTo, setReplyingTo] = useState(null);
-    const [comments, setComments] = useState([]);
+    const [repliesByComment, setRepliesByComment] = useState({});
+    const [noteText, setNoteText] = useState("");
+    const [editingNoteId, setEditingNoteId] = useState(null);
     const [activeTab, setActiveTab] = useState("desc");
-    const nav = useNavigate();
+
+    const comments = interactions.filter(i => i.type === COMMENT_TYPE);
+    const notes = user
+        ? interactions.filter(i => i.type === NOTE_TYPE && i.userId === user.id)
+        : [];
 
     useEffect(() => {
         const loadResource = async () => {
+            setLoading(true);
+            setErr("");
+            setActionErr("");
+
             try {
-                setLoading(true);
+                const [resourceRes, relatedRes, interactionsRes] = await Promise.all([
+                    Apis.get(endpoints["resource-detail"](id)),
+                    Apis.get(endpoints["resource-related"](id)),
+                    Apis.get(endpoints["resource-interactions"](id))
+                ]);
 
-                const res = await Apis.get(endpoints["resource-detail"](id));
-                setResource(res.data.data);
-
-            } catch (err) {
-                console.error(err);
-                setErr("Không tìm thấy tài liệu.");
+                setResource(resourceRes.data.data);
+                setRelatedResources(relatedRes.data.data || []);
+                setInteractions(interactionsRes.data.data || []);
+            } catch (ex) {
+                console.error(ex);
+                setErr(ex.response?.data?.message || "Không tìm thấy tài liệu.");
             } finally {
                 setLoading(false);
             }
@@ -88,69 +103,204 @@ const ResourceDetail = () => {
         loadResource();
     }, [id]);
 
-    const handleComment = (e) => {
+    useEffect(() => {
+        const loadReplies = async () => {
+            const currentComments = interactions.filter(i => i.type === COMMENT_TYPE);
+
+            if (currentComments.length === 0) {
+                setRepliesByComment({});
+                return;
+            }
+
+            try {
+                const replyResponses = await Promise.all(
+                    currentComments.map(comment => Apis.get(endpoints["interaction-replies"](comment.id)))
+                );
+
+                const nextReplies = {};
+                replyResponses.forEach((res, index) => {
+                    nextReplies[currentComments[index].id] = res.data.data || [];
+                });
+                setRepliesByComment(nextReplies);
+            } catch (ex) {
+                console.error(ex);
+            }
+        };
+
+        loadReplies();
+    }, [interactions]);
+
+    const requireLogin = () => {
+        if (!user) {
+            nav(`/login?next=/resources/${id}`);
+            return false;
+        }
+        return true;
+    };
+
+    const createInteraction = async (payload) => {
+        if (!requireLogin()) return null;
+        const res = await authApis().post(endpoints["resource-interactions-secure"](id), payload);
+        return res.data.data;
+    };
+
+    const handleComment = async (e) => {
         e.preventDefault();
         if (!commentText.trim()) return;
-        setComments([...comments, { id: Date.now(), parentId: null, user: { fullName: "Bạn" }, content: commentText, time: "Vừa xong" }]);
-        setCommentText("");
+
+        setActionErr("");
+        try {
+            const created = await createInteraction({
+                note: commentText.trim(),
+                type: COMMENT_TYPE
+            });
+            if (created) {
+                setInteractions(prev => [created, ...prev]);
+                setCommentText("");
+            }
+        } catch (ex) {
+            console.error(ex);
+            setActionErr(ex.response?.data?.message || "Không thể gửi bình luận.");
+        }
     };
 
-    const handleReply = (e, parentId) => {
+    const handleReply = async (e, interactionId) => {
         e.preventDefault();
         if (!replyText.trim()) return;
-        setComments([...comments, { id: Date.now(), parentId, user: { fullName: "Bạn" }, content: replyText, time: "Vừa xong" }]);
-        setReplyText("");
-        setReplyingTo(null);
+        if (!requireLogin()) return;
+
+        setActionErr("");
+        try {
+            const res = await authApis().post(endpoints["interaction-replies-secure"](interactionId), {
+                content: replyText.trim()
+            });
+            setRepliesByComment(prev => ({
+                ...prev,
+                [interactionId]: [...(prev[interactionId] || []), res.data.data]
+            }));
+            setReplyText("");
+            setReplyingTo(null);
+        } catch (ex) {
+            console.error(ex);
+            setActionErr(ex.response?.data?.message || "Không thể gửi phản hồi.");
+        }
     };
 
-    const renderComments = (parentId = null, depth = 0) => {
-        const list = comments.filter(c => c.parentId === parentId);
-        if (!list.length) return null;
-        return list.map(c => {
-            const hasChildren = comments.some(ch => ch.parentId === c.id);
-            return (
-                <div key={c.id} className={`fb-comment-thread ${depth > 0 ? 'fb-comment-reply' : ''}`}>
-                    {depth > 0 && <div className="fb-comment-curve-line"></div>}
-                    {hasChildren && <div className="fb-comment-line"></div>}
-                    <div className="fb-comment-wrapper">
-                        <div className="fb-comment-avatar">{c.user.fullName.charAt(0)}</div>
-                        <div className="fb-comment-body">
-                            <div className="fb-comment-bubble">
-                                <span className="fb-comment-name">{c.user.fullName}</span>
-                                <span className="fb-comment-text">{c.content}</span>
-                            </div>
-                            <div className="fb-comment-actions">
-                                <span>{c.time}</span>
-                                <a href="#!" onClick={e => e.preventDefault()}>Thích</a>
-                                <a href="#!" onClick={e => { e.preventDefault(); setReplyingTo(replyingTo === c.id ? null : c.id); setReplyText(""); }}>
-                                    {replyingTo === c.id ? "Hủy" : "Phản hồi"}
-                                </a>
-                            </div>
-                            {replyingTo === c.id && (
-                                <Form onSubmit={e => handleReply(e, c.id)} className="fb-input-wrapper mt-2">
-                                    <div className="fb-comment-avatar" style={{ width: 28, height: 28, fontSize: '0.72rem' }}>B</div>
-                                    <Form.Control type="text" placeholder={`Trả lời ${c.user.fullName}...`} value={replyText} onChange={e => setReplyText(e.target.value)} autoFocus />
-                                </Form>
-                            )}
-                        </div>
-                    </div>
-                    {hasChildren && (
-                        <div className="fb-comment-children">{renderComments(c.id, depth + 1)}</div>
-                    )}
-                </div>
-            );
-        });
+    const handleDeleteReply = async (replyId, interactionId) => {
+        if (!requireLogin()) return;
+        if (!window.confirm("Xóa phản hồi này?")) return;
+
+        setActionErr("");
+        try {
+            await authApis().delete(endpoints["interaction-reply-detail"](replyId));
+            setRepliesByComment(prev => ({
+                ...prev,
+                [interactionId]: (prev[interactionId] || []).filter(reply => reply.id !== replyId)
+            }));
+        } catch (ex) {
+            console.error(ex);
+            setActionErr(ex.response?.data?.message || "Không thể xóa phản hồi.");
+        }
     };
+
+    const handleSaveNote = async (e) => {
+        e.preventDefault();
+        if (!noteText.trim()) return;
+
+        setActionErr("");
+        try {
+            if (editingNoteId) {
+                const res = await authApis().put(endpoints["student-interaction-detail"](editingNoteId), {
+                    note: noteText.trim(),
+                    type: NOTE_TYPE
+                });
+                setInteractions(prev => prev.map(item => item.id === editingNoteId ? res.data.data : item));
+            } else {
+                const created = await createInteraction({
+                    note: noteText.trim(),
+                    type: NOTE_TYPE
+                });
+                if (created)
+                    setInteractions(prev => [created, ...prev]);
+            }
+
+            setNoteText("");
+            setEditingNoteId(null);
+        } catch (ex) {
+            console.error(ex);
+            setActionErr(ex.response?.data?.message || "Không thể lưu ghi chú.");
+        }
+    };
+
+    const handleEditNote = (note) => {
+        setEditingNoteId(note.id);
+        setNoteText(note.note || "");
+    };
+
+    const handleDeleteInteraction = async (interactionId) => {
+        if (!requireLogin()) return;
+        if (!window.confirm("Xóa nội dung này?")) return;
+
+        setActionErr("");
+        try {
+            await authApis().delete(endpoints["student-interaction-detail"](interactionId));
+            setInteractions(prev => prev.filter(item => item.id !== interactionId));
+            if (editingNoteId === interactionId) {
+                setEditingNoteId(null);
+                setNoteText("");
+            }
+        } catch (ex) {
+            console.error(ex);
+            setActionErr(ex.response?.data?.message || "Không thể xóa nội dung.");
+        }
+    };
+
+    const openResourceFile = () => {
+        if (!resource?.fileUrl) return;
+        window.open(resource.fileUrl, "_blank", "noopener,noreferrer");
+    };
+
+    const renderViewer = () => {
+        const format = (resource?.format || "").toUpperCase();
+
+        if (resource?.fileUrl && format === "PDF") {
+            return (
+                <iframe
+                    src={resource.fileUrl}
+                    className="cl-doc-iframe"
+                    title={resource.title}
+                    style={{ minHeight: 360 }}
+                />
+            );
+        }
+
+        if (resource?.fileUrl && ["MP4", "VIDEO"].includes(format)) {
+            return (
+                <video controls className="cl-video" src={resource.fileUrl}>
+                    Trình duyệt không hỗ trợ phát video.
+                </video>
+            );
+        }
+
+        if (resource?.thumbnailUrl) {
+            return <img src={resource.thumbnailUrl} alt={resource.title} className="rd-viewer-thumb" />;
+        }
+
+        return <div className="rd-viewer-icon"><i className="bi bi-file-earmark-text" /></div>;
+    };
+
+    const ownerName = resource?.uploadBy?.fullName || resource?.uploadBy?.username || "Không rõ";
+    const categoryItems = [...(resource?.subjects || []), ...(resource?.topics || [])];
+    const typeItems = resource?.types || [];
+    const tagItems = resource?.tags || [];
 
     if (loading) return <MySpinner />;
-    if (err) return <Container className="py-5"><div className="rd-error">{err}</div></Container>;
+    if (err) return <Container className="py-5"><Alert variant="danger">{err}</Alert></Container>;
     if (!resource) return null;
 
-    const relatedAll = relatedResources;
     return (
         <div className="rd-page">
             <Container className="py-4">
-                {/* Breadcrumb */}
                 <nav className="rd-breadcrumb">
                     <Link to="/">Trang chủ</Link>
                     <span>›</span>
@@ -160,94 +310,200 @@ const ResourceDetail = () => {
                 </nav>
 
                 <Row className="g-4">
-                    {/* ===== LEFT COLUMN ===== */}
                     <Col lg={8}>
-                        {/* Title Block */}
                         <div className="rd-title-block">
                             <h1 className="rd-title">{resource.title}</h1>
-                            <Badge className="rd-premium-badge">Premium Resource</Badge>
+                            <div className="d-flex flex-wrap gap-2">
+                                {typeItems.length > 0 ? typeItems.map(type => (
+                                    <Badge key={type.id} className="rd-premium-badge">{type.name}</Badge>
+                                )) : (
+                                    <Badge className="rd-premium-badge">{getFormatLabel(resource.format)}</Badge>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Viewer */}
                         <div className="rd-viewer">
-                            {resource.thumbnailUrl ? (
-                                <img src={resource.thumbnailUrl} alt={resource.title} className="rd-viewer-thumb" />
-                            ) : (
-                                <div className="rd-viewer-icon">📄</div>
-                            )}
+                            {renderViewer()}
                             <div className="rd-viewer-label">
                                 <span>Xem trước tài liệu</span>
-                                <small>Trang 1 trên {resource.pageCount || "N/A"} trang</small>
+                                <small>
+                                    {resource.pageCount ? `${resource.pageCount} trang` : getFormatLabel(resource.format)}
+                                    {resource.fileSize ? ` · ${formatFileSize(resource.fileSize)}` : ""}
+                                </small>
                             </div>
-                            <button className="rd-fullscreen-btn">Chế độ toàn màn hình</button>
+                            <button className="rd-fullscreen-btn" onClick={openResourceFile} disabled={!resource.fileUrl}>
+                                {resource.fileUrl ? "Mở tài liệu" : "Chưa có file xem trước"}
+                            </button>
                         </div>
 
-                        {/* Tabs */}
                         <div className="rd-tabs">
                             {["desc", "comments", "notes"].map(tab => (
                                 <button
                                     key={tab}
-                                    className={`rd-tab-btn ${activeTab === tab ? 'active' : ''}`}
+                                    className={`rd-tab-btn ${activeTab === tab ? "active" : ""}`}
                                     onClick={() => setActiveTab(tab)}
                                 >
-                                    {tab === "desc" ? "Mô tả tài liệu" : tab === "comments" ? `Bình luận (${comments.length})` : "Ghi chú"}
+                                    {tab === "desc" ? "Mô tả tài liệu" : tab === "comments" ? `Bình luận (${comments.length})` : `Ghi chú (${notes.length})`}
                                 </button>
                             ))}
                         </div>
 
+                        {actionErr && <Alert variant="danger">{actionErr}</Alert>}
+
                         {activeTab === "desc" && (
                             <div className="rd-desc-panel">
-                                <p>{resource.description}</p>
-                                <div className="rd-desc-section">
-                                    <strong>Đối tượng hướng tới:</strong>
-                                    <ul>
-                                        <li>Sinh viên năm cuối chuyên ngành {(resource.subjects || []).map(s => s.name).join(", ")}.</li>
-                                        <li>Các kỹ sư AI đang làm việc tại doanh nghiệp.</li>
-                                        <li>Nghiên cứu sinh trong lĩnh vực {(resource.topics || []).map(t => t.name).join(", ")}.</li>
-                                    </ul>
-                                </div>
-                                <div className="rd-desc-section">
-                                    <strong>Kết quả học tập chính:</strong>
-                                    <ul>
-                                        <li>Hiểu sâu về cơ sở toán học của các thuật toán trong tài liệu này.</li>
-                                        <li>Kỹ thuật xử lý dữ liệu nhiều và tối ưu hóa nâng cao.</li>
-                                        <li>Quy trình triển khai mô hình vào hệ thống production quy mô lớn.</li>
-                                    </ul>
-                                </div>
+                                {resource.description ? (
+                                    <p className="mb-0">{resource.description}</p>
+                                ) : (
+                                    <p className="text-muted mb-0">Tài liệu chưa có mô tả.</p>
+                                )}
                             </div>
                         )}
 
                         {activeTab === "comments" && (
                             <div className="rd-desc-panel">
                                 <Form onSubmit={handleComment} className="fb-input-wrapper mb-4">
-                                    <div className="fb-comment-avatar">B</div>
-                                    <Form.Control type="text" placeholder="Viết bình luận..." value={commentText} onChange={e => setCommentText(e.target.value)} />
+                                    <div className="fb-comment-avatar">{getInitial(user?.fullName || user?.username || "B")}</div>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder={user ? "Viết bình luận..." : "Đăng nhập để bình luận..."}
+                                        value={commentText}
+                                        onChange={e => setCommentText(e.target.value)}
+                                        disabled={!user}
+                                    />
                                 </Form>
-                                {renderComments(null)}
+
+                                {comments.length === 0 && <div className="text-muted">Chưa có bình luận.</div>}
+
+                                {comments.map(comment => (
+                                    <div key={comment.id} className="fb-comment-thread">
+                                        <div className="fb-comment-wrapper">
+                                            <div className="fb-comment-avatar">{getInitial(comment.fullName || comment.username)}</div>
+                                            <div className="fb-comment-body">
+                                                <div className="fb-comment-bubble">
+                                                    <span className="fb-comment-name">{comment.fullName || comment.username || "Người dùng"}</span>
+                                                    <span className="fb-comment-text">{comment.note}</span>
+                                                </div>
+                                                <div className="fb-comment-actions">
+                                                    <span>{comment.createdAt}</span>
+                                                    {user && (
+                                                        <a href="#!" onClick={e => {
+                                                            e.preventDefault();
+                                                            setReplyingTo(replyingTo === comment.id ? null : comment.id);
+                                                            setReplyText("");
+                                                        }}>
+                                                            {replyingTo === comment.id ? "Hủy" : "Phản hồi"}
+                                                        </a>
+                                                    )}
+                                                    {user?.id === comment.userId && (
+                                                        <a href="#!" onClick={e => { e.preventDefault(); handleDeleteInteraction(comment.id); }}>
+                                                            Xóa
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                {replyingTo === comment.id && (
+                                                    <Form onSubmit={e => handleReply(e, comment.id)} className="fb-input-wrapper mt-2">
+                                                        <div className="fb-comment-avatar" style={{ width: 28, height: 28, fontSize: "0.72rem" }}>
+                                                            {getInitial(user?.fullName || user?.username || "B")}
+                                                        </div>
+                                                        <Form.Control
+                                                            type="text"
+                                                            placeholder={`Trả lời ${comment.fullName || comment.username || "bình luận"}...`}
+                                                            value={replyText}
+                                                            onChange={e => setReplyText(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                    </Form>
+                                                )}
+                                                {(repliesByComment[comment.id] || []).length > 0 && (
+                                                    <div className="fb-comment-children">
+                                                        {(repliesByComment[comment.id] || []).map(reply => (
+                                                            <div key={reply.id} className="fb-comment-thread fb-comment-reply">
+                                                                <div className="fb-comment-wrapper">
+                                                                    <div className="fb-comment-avatar">{getInitial(reply.fullName || reply.username)}</div>
+                                                                    <div className="fb-comment-body">
+                                                                        <div className="fb-comment-bubble">
+                                                                            <span className="fb-comment-name">{reply.fullName || reply.username || "Người dùng"}</span>
+                                                                            <span className="fb-comment-text">{reply.content}</span>
+                                                                        </div>
+                                                                        <div className="fb-comment-actions">
+                                                                            {user?.id === reply.userId && (
+                                                                                <a href="#!" onClick={e => {
+                                                                                    e.preventDefault();
+                                                                                    handleDeleteReply(reply.id, comment.id);
+                                                                                }}>
+                                                                                    Xóa
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
                         {activeTab === "notes" && (
                             <div className="rd-desc-panel">
-                                <Form.Control as="textarea" rows={5} placeholder="Ghi chú cá nhân..." className="mb-2" />
-                                <Button variant="outline-primary" size="sm">Lưu ghi chú</Button>
+                                <Form onSubmit={handleSaveNote}>
+                                    <Form.Control
+                                        as="textarea"
+                                        rows={5}
+                                        placeholder={user ? "Ghi chú cá nhân..." : "Đăng nhập để lưu ghi chú..."}
+                                        className="mb-2"
+                                        value={noteText}
+                                        onChange={e => setNoteText(e.target.value)}
+                                        disabled={!user}
+                                    />
+                                    <div className="d-flex gap-2">
+                                        <Button variant="outline-primary" size="sm" type="submit" disabled={!user || !noteText.trim()}>
+                                            {editingNoteId ? "Cập nhật ghi chú" : "Lưu ghi chú"}
+                                        </Button>
+                                        {editingNoteId && (
+                                            <Button variant="light" size="sm" onClick={() => { setEditingNoteId(null); setNoteText(""); }}>
+                                                Hủy
+                                            </Button>
+                                        )}
+                                    </div>
+                                </Form>
+
+                                <div className="mt-4">
+                                    {notes.length === 0 && <div className="text-muted">Chưa có ghi chú.</div>}
+                                    {notes.map(note => (
+                                        <div key={note.id} className="border rounded p-3 mb-2">
+                                            <div className="d-flex justify-content-between gap-2">
+                                                <small className="text-muted">{note.createdAt}</small>
+                                                {user?.id === note.userId && (
+                                                    <div className="d-flex gap-2">
+                                                        <Button variant="link" size="sm" className="p-0" onClick={() => handleEditNote(note)}>
+                                                            Sửa
+                                                        </Button>
+                                                        <Button variant="link" size="sm" className="p-0 text-danger" onClick={() => handleDeleteInteraction(note.id)}>
+                                                            Xóa
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="mt-2">{note.note}</div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </Col>
 
-                    {/* ===== RIGHT SIDEBAR ===== */}
                     <Col lg={4}>
                         <div className="rd-sidebar">
-                            {/* Download Button */}
-                            <Button variant="primary" className="rd-download-btn w-100 mb-4">
-                                Tải xuống tài liệu
-                            </Button>
-
-                            {/* Meta Info */}
                             <div className="rd-meta-block">
                                 <div className="rd-meta-row">
                                     <span className="rd-meta-label">Tác giả</span>
-                                    <span className="rd-meta-value">{resource.username}</span>
+                                    <span className="rd-meta-value">{ownerName}</span>
                                 </div>
                                 <div className="rd-meta-row">
                                     <span className="rd-meta-label">Ngày đăng</span>
@@ -263,20 +519,21 @@ const ResourceDetail = () => {
                                 </div>
                                 <div className="rd-meta-row">
                                     <span className="rd-meta-label">Danh mục</span>
-                                    <div className="d-flex flex-wrap gap-1">
-                                        {(resource.subjects || []).map(s => (
-                                            <span key={s.id} className="rd-cat-pill">{s.name}</span>
+                                    <div className="d-flex flex-wrap gap-1 justify-content-end">
+                                        {categoryItems.length === 0 && <span className="rd-meta-value">Không có</span>}
+                                        {categoryItems.map(item => (
+                                            <span key={`${item.id}-${item.name}`} className="rd-cat-pill">{item.name}</span>
                                         ))}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Tags */}
                             <div className="rd-tags-block">
                                 <div className="rd-tags-title">Thẻ tìm kiếm</div>
                                 <div className="d-flex flex-wrap gap-2">
-                                    {(resource.tags || []).map(t => (
-                                        <span key={t.id} className="rd-tag">#{t.name}</span>
+                                    {tagItems.length === 0 && <span className="text-muted">Không có thẻ</span>}
+                                    {tagItems.map(tag => (
+                                        <span key={tag.id} className="rd-tag">#{tag.name}</span>
                                     ))}
                                 </div>
                             </div>
@@ -284,17 +541,16 @@ const ResourceDetail = () => {
                     </Col>
                 </Row>
 
-                {/* Related Resources */}
-                {relatedAll.length > 0 && (
+                {relatedResources.length > 0 && (
                     <div className="rd-related">
                         <div className="rd-related-head">
                             <span>Tài liệu liên quan</span>
-                            <Link to="/resources">Xem tất cả →</Link>
+                            <Link to="/resources">Xem tất cả ›</Link>
                         </div>
                         <Row className="g-3">
-                            {relatedAll.map(r => (
-                                <Col key={r.id} xs={12} sm={6} lg={4}>
-                                    <ResourceCard resource={r} />
+                            {relatedResources.map(item => (
+                                <Col key={item.id} xs={12} sm={6} lg={4}>
+                                    <ResourceCard resource={item} />
                                 </Col>
                             ))}
                         </Row>
@@ -303,5 +559,6 @@ const ResourceDetail = () => {
             </Container>
         </div>
     );
-}
+};
+
 export default ResourceDetail;

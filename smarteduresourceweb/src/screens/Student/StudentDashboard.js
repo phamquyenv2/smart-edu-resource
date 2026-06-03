@@ -32,7 +32,8 @@ const StudentDashboard = () => {
                 setMyCourses(coursesRes.data.data || []);
 
                 const resourcesData = resourcesRes.data.data;
-                setRecentResources(Array.isArray(resourcesData) ? resourcesData.slice(0, 4) : []);
+                const resources = Array.isArray(resourcesData) ? resourcesData : resourcesData?.items || [];
+                setRecentResources(resources.slice(0, 4));
 
                 const quizzesData = quizzesRes.data.data;
                 setQuizzes(Array.isArray(quizzesData) ? quizzesData.slice(0, 2) : []);

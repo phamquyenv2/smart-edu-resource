@@ -7,7 +7,14 @@ export const endpoints = {
     'lecturer-register': '/register/lecturer',
     'profile': '/secure/profile',
     'resources': 'student/resources',
-    'resource-detail': (id) => `/student/resources/${id}`,
+    'resource-detail': (id) => `/resources/${id}`,
+    'resource-related': (id) => `/student/resources/${id}/related`,
+    'resource-interactions': (id) => `/student/resources/${id}/interactions`,
+    'resource-interactions-secure': (id) => `/secure/student/resources/${id}/interactions`,
+    'student-interaction-detail': (id) => `/secure/student/interactions/${id}`,
+    'interaction-replies': (id) => `/student/interactions/${id}/replies`,
+    'interaction-replies-secure': (id) => `/secure/student/interactions/${id}/replies`,
+    'interaction-reply-detail': (id) => `/secure/student/replies/${id}`,
     'subjects': '/subjects',
     'topics': '/topics',
     'resource-types': '/resource-types',
@@ -103,7 +110,7 @@ export const endpoints = {
 
 export const authApis = () => {
     return axios.create({
-        baseURL: 'http://localhost:8081/api/',
+        baseURL: API_BASE_URL,
         headers: {
             'Authorization': `Bearer ${cookies.load('token')}`
         }
@@ -111,5 +118,5 @@ export const authApis = () => {
 };
 
 export default axios.create({
-    baseURL: 'http://localhost:8081/api/'
+    baseURL: API_BASE_URL
 });
