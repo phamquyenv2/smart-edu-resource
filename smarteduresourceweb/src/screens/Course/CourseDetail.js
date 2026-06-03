@@ -5,7 +5,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { MyUserContext } from "../../configs/Context";
 import MySpinner from "../../components/common/MySpinner";
 import CourseCard from "../../components/common/CourseCard";
-import { COURSES, MY_ENROLLMENTS, formatLevel, levelVariant, formatPrice } from "../../configs/MockData";
+import { formatLevel, levelVariant, formatPrice } from "../../configs/MockData";
+import Apis, { authApis, endpoints } from "../../configs/Apis";
+import cookies from "react-cookies";
 
 const CourseDetail = () => {
     const { id } = useParams();
@@ -26,8 +28,11 @@ const CourseDetail = () => {
         const load = async () => {
             try {
                 setLoading(true);
-                await new Promise(r => setTimeout(r, 300));
-                const found = COURSES.find(c => c.id === parseInt(id));
+                const res = await Apis.get(
+                    endpoints["course-detail"](id)
+                );
+
+                const found = res.data.data;
                 if (found) {
                     setCourse(found);
                     const initExpanded = {};
@@ -39,12 +44,33 @@ const CourseDetail = () => {
         load();
     }, [id]);
 
-    // Check enrollment status from MockData
-    // TODO: thay bằng authApis().get(endpoints['my-enrollments']) khi backend sẵn sàng
     useEffect(() => {
-        if (!user || !id) return;
-        const enrolled = MY_ENROLLMENTS.some(e => e.courseId === parseInt(id));
-        setIsEnrolled(enrolled);
+        const token = cookies.load("token");
+        if (!user || !id || !token) {
+            setIsEnrolled(false);
+            return;
+        }
+
+        const checkEnrollment = async () => {
+            try {
+                const res = await authApis().get(
+                    endpoints["my-enrollments"]
+                );
+
+                const data = res.data.data || [];
+
+                const enrolled = data.some(e =>
+                    e.courseId === parseInt(id)
+                );
+
+                setIsEnrolled(enrolled);
+            } catch (err) {
+                console.error(err);
+                setIsEnrolled(false);
+            }
+        };
+
+        checkEnrollment();
     }, [user, id]);
 
     const toggleSection = (sid) => setExpandedSections(prev => ({ ...prev, [sid]: !prev[sid] }));
@@ -65,11 +91,13 @@ const CourseDetail = () => {
             return;
         }
 
-        // Free course — mock enroll (TODO: thay bằng authApis().post() khi backend sẵn sàng)
         try {
             setEnrolling(true);
             setEnrollErr("");
-            await new Promise(r => setTimeout(r, 600)); // Simulate API
+            await authApis().post(
+                endpoints["enroll-course"](id)
+            );
+
             setIsEnrolled(true);
             setEnrollSuccess("Đăng ký khóa học thành công! Bạn có thể vào học ngay.");
         } catch (ex) {
@@ -84,12 +112,12 @@ const CourseDetail = () => {
     if (!course) return null;
 
     const displayedSections = showAllSections ? course.sections : course.sections?.slice(0, 3);
-    const relatedCourses = COURSES.filter(c => c.id !== course.id && c.subject?.id === course.subject?.id).slice(0, 3);
+    const relatedCourses = [];
 
     const ctaLabel = isEnrolled ? "Vào học ngay →"
         : enrolling ? "Đang xử lý..."
-        : course.isPaid ? `Mua khóa học — ${formatPrice(course.price)}`
-        : "Học miễn phí";
+            : course.isPaid ? `Mua khóa học — ${formatPrice(course.price)}`
+                : "Học miễn phí";
 
     return (
         <div className="cd-page">
@@ -136,8 +164,8 @@ const CourseDetail = () => {
                                         <span className="cd-original-price">{formatPrice(course.originalPrice)}</span>
                                     </div>
                                 )}
-                                {enrollErr && <Alert variant="danger" className="py-2 mb-2" style={{fontSize:'0.82rem'}}>{enrollErr}</Alert>}
-                                {enrollSuccess && <Alert variant="success" className="py-2 mb-2" style={{fontSize:'0.82rem'}}>{enrollSuccess}</Alert>}
+                                {enrollErr && <Alert variant="danger" className="py-2 mb-2" style={{ fontSize: '0.82rem' }}>{enrollErr}</Alert>}
+                                {enrollSuccess && <Alert variant="success" className="py-2 mb-2" style={{ fontSize: '0.82rem' }}>{enrollSuccess}</Alert>}
                                 <Button className="cd-enroll-btn w-100" onClick={handleEnroll} disabled={enrolling}>
                                     {ctaLabel}
                                 </Button>
@@ -268,7 +296,7 @@ const CourseDetail = () => {
                         {/* CTA: Vào học (nếu đã đăng ký) */}
                         {isEnrolled && (
                             <div className="cd-section-card text-center">
-                                <p style={{fontSize:'0.88rem', color:'var(--text-secondary)', marginBottom:'12px'}}>
+                                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                                     Bạn đã đăng ký. Bấm vào đây để bắt đầu học!
                                 </p>
                                 <Button
@@ -306,8 +334,8 @@ const CourseDetail = () => {
                                     </div>
                                 )}
 
-                                {enrollErr && <Alert variant="danger" className="py-2 mb-2" style={{fontSize:'0.82rem'}}>{enrollErr}</Alert>}
-                                {enrollSuccess && <Alert variant="success" className="py-2 mb-2" style={{fontSize:'0.82rem'}}>{enrollSuccess}</Alert>}
+                                {enrollErr && <Alert variant="danger" className="py-2 mb-2" style={{ fontSize: '0.82rem' }}>{enrollErr}</Alert>}
+                                {enrollSuccess && <Alert variant="success" className="py-2 mb-2" style={{ fontSize: '0.82rem' }}>{enrollSuccess}</Alert>}
 
                                 <Button className="cd-enroll-btn w-100 mb-3" onClick={handleEnroll} disabled={enrolling}>
                                     {ctaLabel}

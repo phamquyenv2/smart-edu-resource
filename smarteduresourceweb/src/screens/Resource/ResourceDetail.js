@@ -4,14 +4,51 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import MySpinner from "../../components/common/MySpinner";
 import ResourceCard from "../../components/common/ResourceCard";
-import { RESOURCES, formatLevel, levelVariant, formatFileSize, formatDate, getFormatLabel } from "../../configs/MockData";
+import Apis, { authApis, endpoints } from "../../configs/Apis";
 
-const MOCK_COMMENTS = [
-    { id: 1, parentId: null, user: { fullName: "Nguyễn Minh Tuấn" }, content: "Tài liệu rất chi tiết, phần OOP giải thích rõ ràng.", time: "2 giờ trước" },
-    { id: 2, parentId: 1, user: { fullName: "TS. Nguyễn Văn An" }, content: "Cảm ơn em đã phản hồi. Thầy sẽ bổ sung thêm phần đa hình (Polymorphism) vào chương sau.", time: "1 giờ trước" },
-    { id: 4, parentId: 2, user: { fullName: "Nguyễn Minh Tuấn" }, content: "Dạ vâng, em cảm ơn thầy ạ.", time: "30 phút trước" },
-    { id: 3, parentId: null, user: { fullName: "Trần Thu Hà" }, content: "Có thể bổ sung thêm bài tập thực hành được không ạ?", time: "Vừa xong" },
-];
+const formatDate = (date) => {
+    if (!date) return "";
+    return new Date(date).toLocaleDateString("vi-VN");
+};
+
+const getFormatLabel = (format) => {
+    if (!format) return "RESOURCE";
+    return format;
+};
+
+const formatFileSize = (size) => {
+    if (!size) return "";
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+    return `${Math.round(size / 1024 / 1024)} MB`;
+};
+
+const levelVariant = (level) => {
+    switch (level) {
+        case "BEGINNER":
+            return "success";
+        case "INTERMEDIATE":
+            return "warning";
+        case "ADVANCED":
+            return "danger";
+        default:
+            return "secondary";
+    }
+};
+
+const formatLevel = (level) => {
+    switch (level) {
+        case "BEGINNER":
+            return "Cơ bản";
+        case "INTERMEDIATE":
+            return "Trung bình";
+        case "ADVANCED":
+            return "Nâng cao";
+        default:
+            return "Không rõ";
+    }
+};
+
 
 const Avatar = ({ name, size = 36 }) => (
     <div className="rd-avatar" style={{ width: size, height: size, fontSize: size * 0.4 }}>
@@ -22,26 +59,33 @@ const Avatar = ({ name, size = 36 }) => (
 const ResourceDetail = () => {
     const { id } = useParams();
     const [resource, setResource] = useState(null);
+    const [relatedResources, setRelatedResources] = useState([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState("");
     const [commentText, setCommentText] = useState("");
     const [replyText, setReplyText] = useState("");
     const [replyingTo, setReplyingTo] = useState(null);
-    const [comments, setComments] = useState(MOCK_COMMENTS);
+    const [comments, setComments] = useState([]);
     const [activeTab, setActiveTab] = useState("desc");
     const nav = useNavigate();
 
     useEffect(() => {
-        const load = async () => {
+        const loadResource = async () => {
             try {
                 setLoading(true);
-                await new Promise(r => setTimeout(r, 400));
-                const found = RESOURCES.find(r => r.id === parseInt(id));
-                if (found) setResource(found);
-                else setErr("Không tìm thấy tài liệu.");
-            } catch (ex) { console.error(ex); setErr("Lỗi tải tài liệu."); } finally { setLoading(false); }
+
+                const res = await Apis.get(endpoints["resource-detail"](id));
+                setResource(res.data.data);
+
+            } catch (err) {
+                console.error(err);
+                setErr("Không tìm thấy tài liệu.");
+            } finally {
+                setLoading(false);
+            }
         };
-        load();
+
+        loadResource();
     }, [id]);
 
     const handleComment = (e) => {
@@ -102,8 +146,7 @@ const ResourceDetail = () => {
     if (err) return <Container className="py-5"><div className="rd-error">{err}</div></Container>;
     if (!resource) return null;
 
-    const relatedAll = RESOURCES.filter(r => r.id !== resource.id && r.subjects.some(s => resource.subjects.some(rs => rs.id === s.id))).slice(0, 3);
-
+    const relatedAll = relatedResources;
     return (
         <div className="rd-page">
             <Container className="py-4">
@@ -158,9 +201,9 @@ const ResourceDetail = () => {
                                 <div className="rd-desc-section">
                                     <strong>Đối tượng hướng tới:</strong>
                                     <ul>
-                                        <li>Sinh viên năm cuối chuyên ngành {resource.subjects.map(s => s.name).join(", ")}.</li>
+                                        <li>Sinh viên năm cuối chuyên ngành {(resource.subjects || []).map(s => s.name).join(", ")}.</li>
                                         <li>Các kỹ sư AI đang làm việc tại doanh nghiệp.</li>
-                                        <li>Nghiên cứu sinh trong lĩnh vực {resource.topics.map(t => t.name).join(", ")}.</li>
+                                        <li>Nghiên cứu sinh trong lĩnh vực {(resource.topics || []).map(t => t.name).join(", ")}.</li>
                                     </ul>
                                 </div>
                                 <div className="rd-desc-section">
@@ -204,7 +247,7 @@ const ResourceDetail = () => {
                             <div className="rd-meta-block">
                                 <div className="rd-meta-row">
                                     <span className="rd-meta-label">Tác giả</span>
-                                    <span className="rd-meta-value">{resource.uploadBy.fullName}</span>
+                                    <span className="rd-meta-value">{resource.username}</span>
                                 </div>
                                 <div className="rd-meta-row">
                                     <span className="rd-meta-label">Ngày đăng</span>
@@ -221,7 +264,7 @@ const ResourceDetail = () => {
                                 <div className="rd-meta-row">
                                     <span className="rd-meta-label">Danh mục</span>
                                     <div className="d-flex flex-wrap gap-1">
-                                        {resource.subjects.map(s => (
+                                        {(resource.subjects || []).map(s => (
                                             <span key={s.id} className="rd-cat-pill">{s.name}</span>
                                         ))}
                                     </div>
@@ -232,7 +275,7 @@ const ResourceDetail = () => {
                             <div className="rd-tags-block">
                                 <div className="rd-tags-title">Thẻ tìm kiếm</div>
                                 <div className="d-flex flex-wrap gap-2">
-                                    {resource.tags.map(t => (
+                                    {(resource.tags || []).map(t => (
                                         <span key={t.id} className="rd-tag">#{t.name}</span>
                                     ))}
                                 </div>

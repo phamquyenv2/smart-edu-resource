@@ -1,42 +1,49 @@
 import axios from "axios";
 import cookies from 'react-cookies'
-
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/';
-
 export const endpoints = {
     'login': '/login',
     'student-register': '/register/student',
     'lecturer-register': '/register/lecturer',
     'profile': '/secure/profile',
-    'resources': '/resources',
-    'resource-detail': (id) => `/resources/${id}`,
+    'resources': 'student/resources',
+    'resource-detail': (id) => `/student/resources/${id}`,
     'subjects': '/subjects',
     'topics': '/topics',
     'resource-types': '/resource-types',
     'resource-tags': '/resource-tags',
-    'courses': '/courses',
-    'course-detail': (id) => `/courses/${id}`,
+    'courses': '/student/courses',
+    'courses-count': '/student/courses/count',
+    'course-detail': (id) => `/student/courses/${id}`,
+    'enroll-course': (id) => `/secure/student/courses/${id}/enroll`,
     'enrollments': (courseId) => `/secure/courses/${courseId}/enrollments`,
     'enroll-self': (courseId) => `/secure/courses/${courseId}/enroll`,
-    'my-enrollments': '/secure/my-enrollments',
+    'my-enrollments': '/secure/student/my-courses',
     'course-learn': (courseId) => `/secure/student/courses/${courseId}/learn`,
     'resource-complete': (resourceId) => `/secure/student/resources/${resourceId}/complete`,
     'course-lessons': (courseId) => `/secure/courses/${courseId}/lessons`,
+    'student-dashboard': '/secure/student/dashboard',
     'student-notifications': '/secure/student/notifications',
     'student-notification-read': (id) => `/secure/student/notifications/${id}`,
     'student-notifications-read-all': '/secure/student/notifications',
+    'student-payments': '/secure/student/payments',
+    'student-quiz-results': '/secure/student/quizzes/results',
+    "student-quiz-detail": (id) => `/student/quizzes/${id}`,
+    "student-quiz-submit": (id) => `/secure/student/quizzes/${id}/submit`,
     'lesson-create': '/secure/lessons',
     'lesson-update': (id) => `/secure/lessons/${id}`,
     'lesson-delete': (id) => `/secure/lessons/${id}`,
-    'quizzes': '/quizzes',
+    'quizzes': '/student/quizzes',
     'quiz-detail': (id) => `/quizzes/${id}`,
     'quiz-questions': (quizId) => `/secure/quizzes/${quizId}/questions`,
     'forum-categories': '/forum-categories',
     'forum-threads': '/forum-threads',
     'forum-thread-detail': (id) => `/forum-threads/${id}`,
     'forum-posts': (threadId) => `/forum-threads/${threadId}/posts`,
-    'chat-rooms': '/secure/chat-rooms',
+    'chat-rooms': '/secure/student/chat-rooms',
     'chat-room-detail': (id) => `/secure/chat-rooms/${id}`,
+    'chat-messages': (roomId) => `/secure/chat-rooms/${roomId}/messages`,
+    'chat-send-message': (roomId) => `/secure/chat-rooms/${roomId}/messages`,
     'payments': '/secure/payments',
     'payment-detail': (id) => `/secure/payments/${id}`,
     'payment-stats': '/secure/payments/stats',
@@ -96,13 +103,13 @@ export const endpoints = {
 
 export const authApis = () => {
     return axios.create({
-        baseURL: API_BASE_URL,
+        baseURL: 'http://localhost:8081/api/',
         headers: {
             'Authorization': `Bearer ${cookies.load('token')}`
         }
-    })
-}
+    });
+};
 
 export default axios.create({
-    baseURL: API_BASE_URL
-})
+    baseURL: 'http://localhost:8081/api/'
+});

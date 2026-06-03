@@ -7,6 +7,7 @@ package com.paq.service;
 import com.paq.pojo.response.ResCourseDTO;
 import com.paq.pojo.response.ResEnrollmentDTO;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -21,4 +22,6 @@ public interface StudentCourseService {
     ResEnrollmentDTO enrollCourse(String username, int courseId);
 
     List<ResEnrollmentDTO> getMyCourses(String username);
+
+    Long countCourses(Map<String, String> params);
 }

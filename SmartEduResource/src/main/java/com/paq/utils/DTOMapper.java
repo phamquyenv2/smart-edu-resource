@@ -292,9 +292,10 @@ public class DTOMapper {
             dto.setSubject(toResSubjectDTO(course.getSubjectId()));
         }
 
-        if (course.getEnrollmentSet() != null) {
+        /*if (course.getEnrollmentSet() != null) {
             dto.setEnrollmentCount(course.getEnrollmentSet().size());
-        }
+        }*/
+        dto.setEnrollmentCount(0);
 
         return dto;
     }
@@ -313,7 +314,7 @@ public class DTOMapper {
         dto.setPageCount(resource.getPageCount());
         dto.setIsDeleted(resource.getIsDeleted());
         dto.setUploadBy(toResUserDTO(resource.getUploadBy()));
-
+        /*
         if (resource.getSubjectSet() != null) {
             dto.setSubjects(resource.getSubjectSet().stream()
                     .map(DTOMapper::toResSubjectDTO)
@@ -337,7 +338,7 @@ public class DTOMapper {
                     .map(DTOMapper::toResCategoryDTO)
                     .collect(Collectors.toList()));
         }
-
+        */
         return dto;
     }
 
@@ -467,16 +468,20 @@ public class DTOMapper {
         dto.setDurationMinutes(quiz.getDurationMinutes());
         dto.setTotalScore(quiz.getTotalScore());
         dto.setCreatedAt(quiz.getCreatedAt());
-        dto.setCourseId(quiz.getCourseId() != null ? quiz.getCourseId().getId() : null);
-        dto.setCreatedBy(toResUserDTO(quiz.getCreatedBy()));
 
-        if (quiz.getQuestionSet() != null) {
-            dto.setQuestionCount((int) quiz.getQuestionSet().stream()
-                    .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
-                    .count());
+        if (quiz.getCourseId() != null) {
+            dto.setCourseId(quiz.getCourseId().getId());
+        }
+
+        if (quiz.getCreatedBy() != null) {
+            dto.setCreatedBy(toResUserDTO(quiz.getCreatedBy()));
         }
 
         if (includeQuestions && quiz.getQuestionSet() != null) {
+            dto.setQuestionCount((int) quiz.getQuestionSet().stream()
+                    .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
+                    .count());
+
             dto.setQuestions(quiz.getQuestionSet().stream()
                     .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
                     .map(q -> toResQuestionDTO(q, includeCorrectAnswers))

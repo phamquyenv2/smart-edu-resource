@@ -4,17 +4,28 @@ import { useNavigate } from "react-router-dom";
 
 import { MyUserContext } from "../../configs/Context";
 import MySpinner from "../../components/common/MySpinner";
-import { PAYMENTS } from "../../configs/MockData";
+import { authApis, endpoints } from "../../configs/Apis";
 
 const PaymentHistory = () => {
     const [user] = useContext(MyUserContext);
+    const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const nav = useNavigate();
 
     useEffect(() => {
         if (!user) { nav('/login'); return; }
-        const t = setTimeout(() => setLoading(false), 400);
-        return () => clearTimeout(t);
+        const loadPayments = async () => {
+            try {
+                const res = await authApis().get(endpoints["student-payments"]);
+                setPayments(Array.isArray(res.data) ? res.data : res.data.data || []);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadPayments();
     }, [user, nav]);
 
     if (loading) return <MySpinner />;
@@ -23,7 +34,8 @@ const PaymentHistory = () => {
         switch (status) {
             case "SUCCESS": return <Badge bg="success">Thành công</Badge>;
             case "PENDING": return <Badge bg="warning" text="dark">Chờ xử lý</Badge>;
-            case "FAILED": return <Badge bg="danger">Thất bại</Badge>;
+            case "CANCELLED": return <Badge bg="danger">Đã hủy</Badge>;
+            case "REFUNDED": return <Badge bg="info">Hoàn tiền</Badge>;
             default: return <Badge bg="secondary">{status}</Badge>;
         }
     };
@@ -44,16 +56,24 @@ const PaymentHistory = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {PAYMENTS.map((p, idx) => (
-                            <tr key={p.id}>
-                                <td>{idx + 1}</td>
-                                <td>{p.courseName}</td>
-                                <td>{p.amount.toLocaleString('vi-VN')}đ</td>
-                                <td><Badge bg="light" text="dark">{p.method}</Badge></td>
-                                <td>{statusBadge(p.status)}</td>
-                                <td>{p.createdAt}</td>
+                        {payments.length === 0 ? (
+                            <tr>
+                                <td colSpan="6" className="text-center py-4">
+                                    Chưa có giao dịch thanh toán
+                                </td>
                             </tr>
-                        ))}
+                        ) : (
+                            payments.map((p, idx) => (
+                                <tr key={p.id}>
+                                    <td>{idx + 1}</td>
+                                    <td>{p.courseName || p.enrollmentCourseName || "Khóa học"}</td>
+                                    <td>{p.amount.toLocaleString('vi-VN')}đ</td>
+                                    <td><Badge bg="light" text="dark">{p.method}</Badge></td>
+                                    <td>{statusBadge(p.status)}</td>
+                                    <td>{p.createdAt || p.paidAt}</td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </Table>
             </div>

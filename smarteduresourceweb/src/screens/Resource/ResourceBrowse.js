@@ -4,10 +4,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import MySpinner from "../../components/common/MySpinner";
 import ResourceCard from "../../components/common/ResourceCard";
-import { RESOURCES, SUBJECTS, TOPICS, RESOURCE_TYPES } from "../../configs/MockData";
+import Apis, { endpoints } from "../../configs/Apis";
 
 const ResourceBrowse = () => {
     const [resources, setResources] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [topics, setTopics] = useState([]);
+    const [resourceTypes, setResourceTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchParams] = useSearchParams();
     const [filters, setFilters] = useState({
@@ -19,26 +22,60 @@ const ResourceBrowse = () => {
     const nav = useNavigate();
 
     useEffect(() => {
-        const load = async () => {
+        const loadResources = async () => {
             try {
                 setLoading(true);
-                await new Promise(r => setTimeout(r, 400));
-                let list = [...RESOURCES];
-                if (filters.kw) {
-                    const kw = filters.kw.toLowerCase();
-                    list = list.filter(r => r.title.toLowerCase().includes(kw) || r.description.toLowerCase().includes(kw));
+
+                let url = endpoints["resources"];
+
+                const params = [];
+
+                if (filters.kw)
+                    params.push(`kw=${encodeURIComponent(filters.kw)}`);
+
+                if (filters.subjectId)
+                    params.push(`subjectId=${filters.subjectId}`);
+
+                if (filters.topicId)
+                    params.push(`topicId=${filters.topicId}`);
+
+                if (filters.typeId)
+                    params.push(`typeId=${filters.typeId}`);
+
+                if (filters.level)
+                    params.push(`level=${filters.level}`);
+
+                if (params.length > 0)
+                    url += "?" + params.join("&");
+
+                const [resourcesRes, subjectsRes, topicsRes, typesRes] = await Promise.all([
+                    Apis.get(url),
+                    Apis.get(endpoints["subjects"]),
+                    Apis.get(endpoints["topics"]),
+                    Apis.get(endpoints["resource-types"])
+                ]);
+
+                let list = resourcesRes.data.data || [];
+
+                if (sortBy === "az") {
+                    list.sort((a, b) =>
+                        (a.title || "").localeCompare(b.title || "")
+                    );
                 }
-                if (filters.subjectId) list = list.filter(r => r.subjects.some(s => s.id === parseInt(filters.subjectId)));
-                if (filters.topicId) list = list.filter(r => r.topics.some(t => t.id === parseInt(filters.topicId)));
-                if (filters.typeId) list = list.filter(r => r.types.some(t => t.id === parseInt(filters.typeId)));
-                if (filters.level) list = list.filter(r => r.level === filters.level);
-                if (sortBy === "newest") list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                else if (sortBy === "oldest") list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                else if (sortBy === "az") list.sort((a, b) => a.title.localeCompare(b.title));
+
                 setResources(list);
-            } catch (ex) { console.error(ex); } finally { setLoading(false); }
+                setSubjects(subjectsRes.data.data || []);
+                setTopics(topicsRes.data.data || []);
+                setResourceTypes(typesRes.data.data || []);
+
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
         };
-        load();
+
+        loadResources();
     }, [filters, sortBy]);
 
     const clearFilters = () => setFilters({ kw: "", subjectId: "", topicId: "", typeId: "", level: "" });
@@ -57,21 +94,21 @@ const ResourceBrowse = () => {
                             <Form.Label>Môn học</Form.Label>
                             <Form.Select value={filters.subjectId} onChange={e => setFilters({ ...filters, subjectId: e.target.value })}>
                                 <option value="">Tất cả</option>
-                                {SUBJECTS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </Form.Select>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Chủ đề</Form.Label>
                             <Form.Select value={filters.topicId} onChange={e => setFilters({ ...filters, topicId: e.target.value })}>
                                 <option value="">Tất cả</option>
-                                {TOPICS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </Form.Select>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Loại</Form.Label>
                             <Form.Select value={filters.typeId} onChange={e => setFilters({ ...filters, typeId: e.target.value })}>
                                 <option value="">Tất cả</option>
-                                {RESOURCE_TYPES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                {resourceTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </Form.Select>
                         </Form.Group>
                         <Form.Group className="mb-3">

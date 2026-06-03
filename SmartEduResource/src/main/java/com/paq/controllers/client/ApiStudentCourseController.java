@@ -10,6 +10,7 @@ import com.paq.pojo.response.ResResponse;
 import com.paq.service.StudentCourseService;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,24 +28,35 @@ public class ApiStudentCourseController {
     private StudentCourseService studentCourseService;
 
     @GetMapping("/student/courses")
-    public ResponseEntity<ResResponse<List<ResCourseDTO>>> getCourses(){
-        ResResponse<List<ResCourseDTO>>res=new ResResponse<>();
+    public ResponseEntity<ResResponse<List<ResCourseDTO>>> getCourses() {
+        ResResponse<List<ResCourseDTO>> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Get courses successfully");
         res.setData(this.studentCourseService.getCourses());
-        
+
         return ResponseEntity.ok(res);
     }
 
     @GetMapping("/student/courses/{id}")
     public ResponseEntity<ResResponse<ResCourseDTO>> getCourseDetail(
             @PathVariable(value = "id") int id) {
-        
-        ResResponse<ResCourseDTO>res=new ResResponse<>();
+
+        ResResponse<ResCourseDTO> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Get course detail successfully");
         res.setData(this.studentCourseService.getCourseById(id));
 
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/student/courses/count")
+    public ResponseEntity<ResResponse<Long>> countCourses(
+            @RequestParam Map<String, String> params) {
+
+        ResResponse<Long> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Count courses successfully");
+        res.setData(this.studentCourseService.countCourses(params));
 
         return ResponseEntity.ok(res);
     }
@@ -53,7 +65,7 @@ public class ApiStudentCourseController {
     public ResponseEntity<ResResponse<ResEnrollmentDTO>> enrollCourse(
             @PathVariable(value = "id") int id,
             Principal principal) {
-        
+
         ResResponse<ResEnrollmentDTO> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Enroll course successfully");
@@ -65,7 +77,7 @@ public class ApiStudentCourseController {
     @GetMapping("/secure/student/my-courses")
     public ResponseEntity<ResResponse<List<ResEnrollmentDTO>>> getMyCourses(
             Principal principal) {
-        
+
         ResResponse<List<ResEnrollmentDTO>> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Get my courses successfully");

@@ -31,7 +31,8 @@ const getBadgeLabel = (format, types) => {
 
 const ResourceCard = ({ resource }) => {
     const nav = useNavigate();
-    const r = resource;
+    const r = resource || {};
+
 
     return (
         <div className="res-card" onClick={() => nav(`/resources/${r.id}`)}>
@@ -43,16 +44,16 @@ const ResourceCard = ({ resource }) => {
                     <span className={`badge-dot ${getDotClass(r.format, r.types)}`}></span>
                     {getBadgeLabel(r.format, r.types)}
                 </div>
-                {r.subjects[0] && (
-                    <span className="res-subject-tag">{r.subjects[0].name}</span>
-                )}
+                
+                    <span className="res-subject-tag">{r.subjects?.[0]?.name || "Chưa phân loại"}</span>
+                
             </div>
             <div className="res-card-body">
                 <div className="title">{r.title}</div>
                 <div className="desc">{r.description}</div>
                 <div className="res-card-footer">
                     <span className="footer-item">
-                        {formatViewCount(r.viewCount)} lượt xem
+                        {formatViewCount(r.viewCount || 0)} lượt xem
                     </span>
                     <span className="footer-item">
                         {formatDate(r.createdAt)}

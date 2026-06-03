@@ -5,15 +5,49 @@ import { Link, useNavigate } from "react-router-dom";
 import MySpinner from "../../components/common/MySpinner";
 import ResourceCard from "../../components/common/ResourceCard";
 import CourseCard from "../../components/common/CourseCard";
-import { RESOURCES, COURSES, SUBJECTS } from "../../configs/MockData";
+import Apis, { endpoints } from "../../configs/Apis";
 
 const Home = () => {
     const [loading, setLoading] = useState(true);
+    const [resources, setResources] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [subjects, setSubjects] = useState([]);
     const nav = useNavigate();
 
     useEffect(() => {
-        const t = setTimeout(() => setLoading(false), 400);
-        return () => clearTimeout(t);
+        const loadHome = async () => {
+            try {
+                setLoading(true);
+
+                const [resourcesRes, coursesRes, subjectsRes] = await Promise.all([
+                    Apis.get(endpoints["resources"]),
+                    Apis.get(endpoints["courses"]),
+                    Apis.get(endpoints["subjects"])
+                ]);
+
+                const resourceData = Array.isArray(resourcesRes.data)
+                    ? resourcesRes.data
+                    : resourcesRes.data.data || [];
+
+                const courseData = Array.isArray(coursesRes.data)
+                    ? coursesRes.data
+                    : coursesRes.data.data || [];
+
+                const subjectData = Array.isArray(subjectsRes.data)
+                    ? subjectsRes.data
+                    : subjectsRes.data.data || [];
+
+                setResources(resourceData);
+                setCourses(courseData);
+                setSubjects(subjectData);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadHome();
     }, []);
 
     if (loading) return <MySpinner />;
@@ -47,8 +81,8 @@ const Home = () => {
             <Container>
                 <Row className="g-3 stat-row">
                     {[
-                        { num: "1,250+", label: "Tài liệu" },
-                        { num: "48", label: "Khóa học" },
+                         { num: `${resources.length}+`, label: "Tài liệu" },
+                        { num: `${courses.length}+`, label: "Khóa học" },
                         { num: "3,200+", label: "Sinh viên" },
                         { num: "85", label: "Giảng viên" },
                     ].map((s, i) => (
@@ -69,7 +103,7 @@ const Home = () => {
                         <Link to="/resources">Xem tất cả</Link>
                     </div>
                     <Row className="g-3">
-                        {RESOURCES.slice(0, 6).map(r => (
+                        {resources.slice(0, 6).map(r => (
                             <Col key={r.id} xs={12} sm={6} lg={4}>
                                 <ResourceCard resource={r} />
                             </Col>
@@ -85,7 +119,7 @@ const Home = () => {
                         <Link to="/courses">Xem tất cả</Link>
                     </div>
                     <Row className="g-3">
-                        {COURSES.slice(0, 4).map(c => (
+                        {courses.slice(0, 4).map(c => (
                             <Col key={c.id} xs={12} sm={6} lg={3}>
                                 <CourseCard course={c} />
                             </Col>
@@ -98,7 +132,7 @@ const Home = () => {
                 <Container>
                     <h2 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '1.35rem' }}>Danh mục môn học</h2>
                     <Row className="g-3 justify-content-center">
-                        {SUBJECTS.map(s => (
+                        {subjects.map(s => (
                             <Col key={s.id} xs={6} sm={4} md={3} lg={2}>
                                 <div className="cat-card" onClick={() => nav(`/resources?subjectId=${s.id}`)}>
                                     <p className="cat-name">{s.name}</p>

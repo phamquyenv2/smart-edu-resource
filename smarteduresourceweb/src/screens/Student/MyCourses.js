@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { MyUserContext } from "../../configs/Context";
 import MySpinner from "../../components/common/MySpinner";
-import { MY_ENROLLMENTS } from "../../configs/MockData";
+import { authApis, endpoints } from "../../configs/Apis";
 
 const MyCourses = () => {
     const [user] = useContext(MyUserContext);
@@ -14,18 +14,28 @@ const MyCourses = () => {
 
     useEffect(() => {
         if (!user) { nav('/login'); return; }
-        // TODO: thay bằng authApis().get(endpoints['my-enrollments']) khi backend sẵn sàng
-        const t = setTimeout(() => {
-            setEnrollments(MY_ENROLLMENTS);
-            setLoading(false);
-        }, 350);
-        return () => clearTimeout(t);
-    }, [user]);
+        const loadMyCourses = async () => {
+            try {
+                let res = await authApis().get(endpoints["my-enrollments"]);
+                setEnrollments(res.data.data || []);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadMyCourses();
+    }, [user, nav]);
 
     if (loading) return <MySpinner />;
 
-    const active = enrollments.filter(e => e.status === "ACTIVE");
+    const active = enrollments.filter(e => e.status === "ACTIVE" || e.status === "SUCCESS" || e.status === "ENROLLED");
     const completed = enrollments.filter(e => e.status === "COMPLETED");
+
+    const getCourseId = (e) => e.courseId || e.id;
+    const getCourseName = (e) => e.courseName || e.name || "Khóa học";
+    const getProgress = (e) => Math.round(e.overallProgress || e.progress || 0);
 
     const renderList = (list, title, emptyMsg) => (
         <div className="panel-card mb-4">

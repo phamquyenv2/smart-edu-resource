@@ -17,10 +17,10 @@ const StudentProfile = () => {
         setFormData({
             fullName: user.fullName || "",
             email: user.email || "",
-            phone: "0901234567",
-            studentCode: "SV2024001",
-            educationLevel: "UNIVERSITY",
-            learningGoal: "Nắm vững các kiến thức lập trình backend và frontend",
+            phone: user.phone || "",
+            studentCode: user.studentCode || "",
+            educationLevel: user.educationLevel || "",
+            learningGoal: user.learningGoal || "",
         });
         const t = setTimeout(() => setLoading(false), 400);
         return () => clearTimeout(t);
