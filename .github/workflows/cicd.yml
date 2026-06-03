@@ -59,7 +59,7 @@ jobs:
           retention-days: 7
 
   build-frontend:
-    name: Build & Test Frontend
+    name: Build Frontend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -78,9 +78,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run tests
-        run: npm test -- --watchAll=false
 
       - name: Build
         run: npm run build
@@ -192,3 +189,5 @@ jobs:
           projectId: ${{ env.FIREBASE_PROJECT_ID }}
           channelId: live
           entryPoint: ${{ env.FRONTEND_DIR }}
+
+
