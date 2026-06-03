@@ -82,6 +82,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          CI: false
           REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
 
       - name: Upload build artifact
@@ -189,5 +190,6 @@ jobs:
           projectId: ${{ env.FIREBASE_PROJECT_ID }}
           channelId: live
           entryPoint: ${{ env.FRONTEND_DIR }}
+
 
 
