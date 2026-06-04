@@ -12,11 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.paq.pojo.Course;
+import com.paq.pojo.CourseLesson;
 import com.paq.pojo.Lecturer;
 import com.paq.pojo.Subject;
 import com.paq.pojo.User;
 import com.paq.pojo.request.ReqCourseDTO;
 import com.paq.pojo.response.ResCourseDTO;
+import com.paq.repository.CourseLessonRepository;
 import com.paq.repository.CourseRepository;
 import com.paq.repository.SubjectRepository;
 import com.paq.repository.UserRepository;
@@ -33,6 +35,9 @@ public class CourseServiceImpl implements CourseService {
 
     @Autowired
     private CourseRepository courseRepo;
+
+    @Autowired
+    private CourseLessonRepository courseLessonRepo;
 
     @Autowired
     private SubjectRepository subjectRepo;
@@ -74,7 +79,13 @@ public class CourseServiceImpl implements CourseService {
             throw new IdInvalidException("Course không tồn tại");
         }
 
-        return DTOMapper.toResCourseDTO(course);
+        ResCourseDTO dto = DTOMapper.toResCourseDTO(course);
+        List<CourseLesson> lessons = this.courseLessonRepo.getLessonsByCourseId(id);
+        dto.setChapters(DTOMapper.toResCourseChapterList(lessons, false));
+        dto.setTotalLessons(lessons.size());
+        dto.setTotalChapters(dto.getChapters() != null ? dto.getChapters().size() : 0);
+
+        return dto;
     }
 
     @Override

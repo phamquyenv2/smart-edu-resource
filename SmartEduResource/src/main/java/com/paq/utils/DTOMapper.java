@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.hibernate.Hibernate;
+
 import com.paq.pojo.AnswerOption;
 import com.paq.pojo.ChatParticipant;
 import com.paq.pojo.ChatRoom;
@@ -679,7 +681,7 @@ public class DTOMapper {
             if (includeProtectedContent) {
                 dto.setQuizId(quiz.getId());
             }
-            if (quiz.getQuestionSet() != null) {
+            if (quiz.getQuestionSet() != null && Hibernate.isInitialized(quiz.getQuestionSet())) {
                 dto.setQuestionCount(quiz.getQuestionSet().size());
             }
             dto.setItemType("QUIZ");
@@ -763,7 +765,7 @@ public class DTOMapper {
         return dto;
     }
 
-    private static List<ResCourseChapterDTO> toResCourseChapterList(List<CourseLesson> lessons, boolean hasAccess) {
+    public static List<ResCourseChapterDTO> toResCourseChapterList(List<CourseLesson> lessons, boolean hasAccess) {
         Map<Integer, List<ResCourseLessonDTO>> map = new LinkedHashMap<>();
         if (lessons != null) {
             for (CourseLesson cl : lessons) {

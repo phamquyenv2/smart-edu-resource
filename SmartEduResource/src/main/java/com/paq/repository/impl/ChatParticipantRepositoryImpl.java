@@ -1,16 +1,8 @@
 package com.paq.repository.impl;
 
-import com.paq.pojo.ChatParticipant;
-import com.paq.repository.ChatParticipantRepository;
-import com.paq.utils.constant.RoleEnum;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import java.util.List;
 import java.util.Map;
+
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +11,17 @@ import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.paq.pojo.ChatParticipant;
+import com.paq.repository.ChatParticipantRepository;
+import com.paq.utils.constant.RoleEnum;
+
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 
 @Repository
 @PropertySource("classpath:configs.properties")
@@ -39,9 +42,9 @@ public class ChatParticipantRepositoryImpl implements ChatParticipantRepository 
         Root<ChatParticipant> root = q.from(ChatParticipant.class);
         root.fetch("roomId", JoinType.INNER);
         root.fetch("userId", JoinType.INNER);
-        
+
         Predicate predicate = b.equal(root.get("roomId").get("id"), roomId);
-        
+
         if (params != null && params.containsKey("kw") && !params.get("kw").isEmpty()) {
             String kw = params.get("kw").toLowerCase();
             Predicate namePredicate = b.like(b.lower(root.get("userId").get("fullName")), "%" + kw + "%");
@@ -96,23 +99,23 @@ public class ChatParticipantRepositoryImpl implements ChatParticipantRepository 
             return null;
         }
     }
-    
+
     @Override
     public Long countParticipantsByRoomId(int roomId, Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder b = session.getCriteriaBuilder();
         CriteriaQuery<Long> q = b.createQuery(Long.class);
         Root<ChatParticipant> root = q.from(ChatParticipant.class);
-        
+
         jakarta.persistence.criteria.Predicate predicate = b.equal(root.get("roomId").get("id"), roomId);
-        
+
         if (params != null && params.containsKey("kw") && !params.get("kw").isEmpty()) {
             String kw = params.get("kw").toLowerCase();
             jakarta.persistence.criteria.Predicate namePredicate = b.like(b.lower(root.get("userId").get("fullName")), "%" + kw + "%");
             jakarta.persistence.criteria.Predicate usernamePredicate = b.like(b.lower(root.get("userId").get("username")), "%" + kw + "%");
             predicate = b.and(predicate, b.or(namePredicate, usernamePredicate));
         }
-        
+
         q.select(b.count(root)).where(predicate);
         return session.createQuery(q).getSingleResult();
     }

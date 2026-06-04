@@ -10,6 +10,7 @@ package com.paq.pojo.response;
  */
 
 import java.util.Date;
+import java.util.List;
 
 public class ResCourseDTO {
 
@@ -28,6 +29,9 @@ public class ResCourseDTO {
     private Integer subjectId;
     private ResSubjectDTO subject;
     private Integer enrollmentCount;
+    private List<ResCourseChapterDTO> chapters;
+    private Integer totalLessons;
+    private Integer totalChapters;
 
     public Integer getId() {
         return id;
@@ -147,5 +151,29 @@ public class ResCourseDTO {
 
     public void setEnrollmentCount(Integer enrollmentCount) {
         this.enrollmentCount = enrollmentCount;
+    }
+
+    public List<ResCourseChapterDTO> getChapters() {
+        return chapters;
+    }
+
+    public void setChapters(List<ResCourseChapterDTO> chapters) {
+        this.chapters = chapters;
+    }
+
+    public Integer getTotalLessons() {
+        return totalLessons;
+    }
+
+    public void setTotalLessons(Integer totalLessons) {
+        this.totalLessons = totalLessons;
+    }
+
+    public Integer getTotalChapters() {
+        return totalChapters;
+    }
+
+    public void setTotalChapters(Integer totalChapters) {
+        this.totalChapters = totalChapters;
     }
 }

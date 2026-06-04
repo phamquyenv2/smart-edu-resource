@@ -22,6 +22,7 @@ export const endpoints = {
     'courses': '/student/courses',
     'courses-count': '/student/courses/count',
     'course-detail': (id) => `/student/courses/${id}`,
+    'course-lessons-public': (id) => `/student/courses/${id}/lessons`,
     'enroll-course': (id) => `/secure/student/courses/${id}/enroll`,
     'enrollments': (courseId) => `/secure/courses/${courseId}/enrollments`,
     'enroll-self': (courseId) => `/secure/courses/${courseId}/enroll`,
