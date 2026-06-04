@@ -81,10 +81,10 @@ const Home = () => {
             <Container>
                 <Row className="g-3 stat-row">
                     {[
-                         { num: `${resources.length}+`, label: "Tài liệu" },
+                        { num: `${resources.length}+`, label: "Tài liệu" },
                         { num: `${courses.length}+`, label: "Khóa học" },
-                        { num: "3,200+", label: "Sinh viên" },
-                        { num: "85", label: "Giảng viên" },
+                        { num: "10+", label: "Sinh viên" },
+                        { num: "10+", label: "Giảng viên" },
                     ].map((s, i) => (
                         <Col key={i} xs={6} md={3}>
                             <div className="stat-box">

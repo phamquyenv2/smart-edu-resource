@@ -3,7 +3,7 @@ import { Alert, Badge, Button, Col, Container, Form, Row } from "react-bootstrap
 import { useNavigate, useParams } from "react-router-dom";
 
 import MySpinner from "../../components/common/MySpinner";
-import { QUIZ_QUESTIONS, QUIZZES } from "../../configs/MockData";
+import { authApis, endpoints } from "../../configs/Apis";
 
 const QuizTaking = () => {
     const { id } = useParams();
@@ -18,8 +18,14 @@ const QuizTaking = () => {
         const load = async () => {
             try {
                 await new Promise(r => setTimeout(r, 400));
-                const found = QUIZZES.find(q => q.id === parseInt(id));
-                if (found) { setQuiz(found); setTimeLeft(found.duration * 60); }
+                const res = await authApis().get(
+                    endpoints["student-quiz-detail"](id)
+                );
+
+                const quizData = res.data.data;
+
+                setQuiz(quizData);
+                setTimeLeft((quizData.durationMinutes || 30) * 60);
             } catch (ex) { console.error(ex); } finally { setLoading(false); }
         };
         load();
@@ -35,14 +41,35 @@ const QuizTaking = () => {
         setAnswers({ ...answers, [questionId]: optionId });
     };
 
-    const handleSubmit = () => {
-        nav(`/quizzes/${id}/result`);
+    const handleSubmit = async () => {
+        try {
+
+            const payload = {
+                answers: Object.entries(answers).map(
+                    ([questionId, optionId]) => ({
+                        questionId: parseInt(questionId),
+                        optionId: optionId
+                    })
+                )
+            };
+
+            await authApis().post(
+                endpoints["student-quiz-submit"](id),
+                payload
+            );
+
+            nav(`/quizzes/${id}/result`);
+
+        } catch (err) {
+            console.error(err);
+            alert("Nộp bài thất bại!");
+        }
     };
 
     if (loading) return <MySpinner />;
     if (!quiz) return <Container className="py-4"><Alert variant="danger">Không tìm thấy bài kiểm tra.</Alert></Container>;
 
-    const questions = QUIZ_QUESTIONS;
+    const questions = quiz?.questions || [];
     const q = questions[currentQ];
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;

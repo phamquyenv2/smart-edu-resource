@@ -30,6 +30,7 @@ import QuizTaking from "./screens/Quiz/QuizTaking";
 import QuizResult from "./screens/Quiz/QuizResult";
 import Forum from "./screens/Forum/Forum";
 import ForumThread from "./screens/Forum/ForumThread";
+import NewThread from "./screens/Forum/NewThread";
 import Chat from "./screens/Chat/Chat";
 import PaymentHistory from "./screens/Payment/PaymentHistory";
 
@@ -105,6 +106,7 @@ const AppLayout = () => {
                     <Route path="/quizzes/:id/result" element={<QuizResult />} />
                     <Route path="/forum" element={<Forum />} />
                     <Route path="/forum/threads/:threadId" element={<ForumThread />} />
+                    <Route path="/forum/new-thread" element={<NewThread />} />
                     <Route path="/chat" element={<Chat />} />
                     <Route path="/payments" element={<PaymentHistory />} />
                 </Routes>

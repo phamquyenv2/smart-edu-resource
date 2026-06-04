@@ -25,9 +25,14 @@ import com.nimbusds.jwt.SignedJWT;
 public class JwtUtils {
 
     private static final long EXPIRATION_MS = 86400000; // 1 ngày
+    
+    private static final String JWT_SECRET =
+            System.getenv("JWT_SECRET") != null
+                    ? System.getenv("JWT_SECRET")
+                    : "smartedu_secret_key_2026_must_be_at_least_32_chars";
 
     public static String generateToken(String username) throws Exception {
-        JWSSigner signer = new MACSigner(System.getenv("JWT_SECRET"));
+        JWSSigner signer = new MACSigner(JWT_SECRET);
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(username)
@@ -47,7 +52,7 @@ public class JwtUtils {
 
     public static String validateTokenAndGetUsername(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifier(System.getenv("JWT_SECRET"));
+        JWSVerifier verifier = new MACVerifier(JWT_SECRET);
 
         if (signedJWT.verify(verifier)) {
             Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();

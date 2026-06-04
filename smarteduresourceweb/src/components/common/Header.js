@@ -57,6 +57,44 @@ const Header = () => {
         }
     };
 
+    const deleteNotification = async (e, notificationId) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            await authApis().delete(
+                endpoints["student-notification-delete"](notificationId)
+            );
+
+            setNotifications(items =>
+                items.filter(item => item.id !== notificationId)
+            );
+        } catch (ex) {
+            console.error(ex);
+            alert("Xóa thông báo thất bại.");
+        }
+    };
+
+    const handleNotificationClick = async (notification) => {
+        await markAsRead(notification);
+
+        if (notification.targetUrl) {
+            nav(notification.targetUrl);
+            return;
+        }
+
+        if (notification.url) {
+            nav(notification.url);
+            return;
+        }
+
+        if (notification.link) {
+            nav(notification.link);
+        }
+    };
+
+
+
     const unreadCount = notifications.filter(notification => !notification.isRead).length;
 
     return (
@@ -79,72 +117,98 @@ const Header = () => {
                             </>
                         ) : (
                             <>
-                            {user.role === "STUDENT" && (
+                                {user.role === "STUDENT" && (
+                                    <NavDropdown
+                                        title={
+                                            <span className="notification-bell">
+                                                <i className="bi bi-bell"></i>
+                                                {unreadCount > 0 && (
+                                                    <span className="notification-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                                                )}
+                                            </span>
+                                        }
+                                        id="notification-dropdown"
+                                        align="end"
+                                        className="notification-dropdown"
+                                    >
+                                        <div className="notification-dropdown-header">
+                                            <strong>Thông báo</strong>
+                                            {unreadCount > 0 && (
+                                                <button type="button" onClick={markAllAsRead}>Đọc tất cả</button>
+                                            )}
+                                        </div>
+                                        {notifications.length === 0 ? (
+                                            <div className="notification-empty">Chưa có thông báo</div>
+                                        ) : (
+                                            notifications.slice(0, 8).map(notification => (
+                                                <div
+                                                    key={notification.id}
+                                                    className={`notification-item dropdown-item ${notification.isRead ? "" : "unread"}`}
+                                                    onClick={() => handleNotificationClick(notification)}
+                                                    style={{
+                                                        display: "flex",
+                                                        justifyContent: "space-between",
+                                                        gap: "8px",
+                                                        alignItems: "flex-start",
+                                                        cursor: "pointer"
+                                                    }}
+                                                >
+                                                    <div style={{ flex: 1 }}>
+                                                        <strong>{notification.title}</strong>
+                                                        <span>{notification.content}</span>
+                                                        <small>{notification.createdAt}</small>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => deleteNotification(e, notification.id)}
+                                                        title="Xóa thông báo"
+                                                        style={{
+                                                            border: "none",
+                                                            background: "transparent",
+                                                            color: "#DC2626",
+                                                            fontSize: "0.8rem",
+                                                            padding: "0 4px"
+                                                        }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </NavDropdown>
+                                )}
                                 <NavDropdown
                                     title={
-                                        <span className="notification-bell">
-                                            <i className="bi bi-bell"></i>
-                                            {unreadCount > 0 && (
-                                                <span className="notification-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
-                                            )}
+                                        <span className="d-inline-flex align-items-center gap-2">
+                                            <span className="user-avatar-circle">
+                                                {user.fullName ? user.fullName.charAt(0) : "U"}
+                                            </span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{user.fullName}</span>
                                         </span>
                                     }
-                                    id="notification-dropdown"
+                                    id="user-dropdown"
                                     align="end"
-                                    className="notification-dropdown"
                                 >
-                                    <div className="notification-dropdown-header">
-                                        <strong>Thông báo</strong>
-                                        {unreadCount > 0 && (
-                                            <button type="button" onClick={markAllAsRead}>Đọc tất cả</button>
-                                        )}
-                                    </div>
-                                    {notifications.length === 0 ? (
-                                        <div className="notification-empty">Chưa có thông báo</div>
-                                    ) : notifications.slice(0, 8).map(notification => (
-                                        <NavDropdown.Item
-                                            key={notification.id}
-                                            onClick={() => markAsRead(notification)}
-                                            className={`notification-item ${notification.isRead ? "" : "unread"}`}
-                                        >
-                                            <strong>{notification.title}</strong>
-                                            <span>{notification.content}</span>
-                                            <small>{notification.createdAt}</small>
-                                        </NavDropdown.Item>
-                                    ))}
+                                    <NavDropdown.Item as={Link} to="/profile">Hồ sơ cá nhân</NavDropdown.Item>
+                                    {user.role === "STUDENT" && (
+                                        <>
+                                            <NavDropdown.Item as={Link} to="/student/dashboard">Dashboard</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/my-courses">Khóa học của tôi</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/learning-path">Lộ trình học tập</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/chat">Tin nhắn</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/payments">Lịch sử thanh toán</NavDropdown.Item>
+                                        </>
+                                    )}
+                                    {user.role === "LECTURER" && (
+                                        <NavDropdown.Item as={Link} to="/lecturer/dashboard">Quản lý Giảng viên</NavDropdown.Item>
+                                    )}
+                                    {user.role === "ADMIN" && (
+                                        <NavDropdown.Item as={Link} to="/admin/dashboard">Trang quản trị</NavDropdown.Item>
+                                    )}
+                                    <NavDropdown.Divider />
+                                    <NavDropdown.Item onClick={handleLogout}>Đăng xuất</NavDropdown.Item>
                                 </NavDropdown>
-                            )}
-                            <NavDropdown
-                                title={
-                                    <span className="d-inline-flex align-items-center gap-2">
-                                        <span className="user-avatar-circle">
-                                            {user.fullName ? user.fullName.charAt(0) : "U"}
-                                        </span>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{user.fullName}</span>
-                                    </span>
-                                }
-                                id="user-dropdown"
-                                align="end"
-                            >
-                                <NavDropdown.Item as={Link} to="/profile">Hồ sơ cá nhân</NavDropdown.Item>
-                                {user.role === "STUDENT" && (
-                                    <>
-                                        <NavDropdown.Item as={Link} to="/student/dashboard">Dashboard</NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/my-courses">Khóa học của tôi</NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/learning-path">Lộ trình học tập</NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/chat">Tin nhắn</NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/payments">Lịch sử thanh toán</NavDropdown.Item>
-                                    </>
-                                )}
-                                {user.role === "LECTURER" && (
-                                    <NavDropdown.Item as={Link} to="/lecturer/dashboard">Quản lý Giảng viên</NavDropdown.Item>
-                                )}
-                                {user.role === "ADMIN" && (
-                                    <NavDropdown.Item as={Link} to="/admin/dashboard">Trang quản trị</NavDropdown.Item>
-                                )}
-                                <NavDropdown.Divider />
-                                <NavDropdown.Item onClick={handleLogout}>Đăng xuất</NavDropdown.Item>
-                            </NavDropdown>
                             </>
                         )}
                     </Nav>
