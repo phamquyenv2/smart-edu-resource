@@ -4,12 +4,9 @@
  */
 package com.paq.controllers.client;
 
-import com.paq.pojo.request.ReqInteractionDTO;
-import com.paq.pojo.response.ResInteractionDTO;
-import com.paq.pojo.response.ResResponse;
-import com.paq.service.StudentInteractionService;
 import java.security.Principal;
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +19,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.paq.pojo.request.ReqInteractionDTO;
+import com.paq.pojo.request.ReqInteractionReplyDTO;
+import com.paq.pojo.response.ResInteractionDTO;
+import com.paq.pojo.response.ResInteractionReplyDTO;
+import com.paq.pojo.response.ResResponse;
+import com.paq.service.StudentInteractionService;
 
 /**
  *
@@ -102,6 +106,78 @@ public class ApiStudentInteractionController {
         res.setData(this.interactionService.deleteInteraction(
                 principal.getName(),
                 interactionId
+        ));
+
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/student/interactions/{interactionId}/replies")
+    public ResponseEntity<ResResponse<List<ResInteractionReplyDTO>>> getReplies(
+            @PathVariable("interactionId") int interactionId) {
+
+        ResResponse<List<ResInteractionReplyDTO>> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Get replies successfully");
+        res.setData(this.interactionService.getRepliesByInteractionId(interactionId));
+
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/secure/student/interactions/{interactionId}/replies")
+    public ResponseEntity<ResResponse<ResInteractionReplyDTO>> createReply(
+            @PathVariable("interactionId") int interactionId,
+            @RequestBody ReqInteractionReplyDTO request,
+            Principal principal) {
+
+        if (principal == null) {
+            ResResponse<ResInteractionReplyDTO> res = new ResResponse<>();
+            res.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+            res.setMessage("Vui lòng đăng nhập");
+            res.setData(null);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(res);
+        }
+
+        ResResponse<ResInteractionReplyDTO> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Create reply successfully");
+        res.setData(this.interactionService.createReply(
+                principal.getName(),
+                interactionId,
+                request
+        ));
+
+        return ResponseEntity.ok(res);
+    }
+
+    @PutMapping("/secure/student/replies/{replyId}")
+    public ResponseEntity<ResResponse<ResInteractionReplyDTO>> updateReply(
+            @PathVariable("replyId") int replyId,
+            @RequestBody ReqInteractionReplyDTO request,
+            Principal principal) {
+
+        ResResponse<ResInteractionReplyDTO> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Update reply successfully");
+        res.setData(this.interactionService.updateReply(
+                principal.getName(),
+                replyId,
+                request
+        ));
+
+        return ResponseEntity.ok(res);
+    }
+
+    @DeleteMapping("/secure/student/replies/{replyId}")
+    public ResponseEntity<ResResponse<ResInteractionReplyDTO>> deleteReply(
+            @PathVariable("replyId") int replyId,
+            Principal principal) {
+
+        ResResponse<ResInteractionReplyDTO> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Delete reply successfully");
+        res.setData(this.interactionService.deleteReply(
+                principal.getName(),
+                replyId
         ));
 
         return ResponseEntity.ok(res);

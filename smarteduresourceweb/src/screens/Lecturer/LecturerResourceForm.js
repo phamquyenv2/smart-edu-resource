@@ -81,9 +81,6 @@ const LecturerResourceForm = () => {
     };
 
     const loadResourceDetail = async (resourceId) => {
-        // Need to load the resource detail to edit
-        // Assuming we have an endpoint for this, if not, we can get from lecturer-resources list.
-        // Actually, let's use the lecturer-resource-detail endpoint
         try {
             let res = await authApis().get(endpoints['lecturer-resource-detail'](resourceId));
             const r = res.data.data;
@@ -208,7 +205,6 @@ const LecturerResourceForm = () => {
 
             <Form onSubmit={handleSubmit}>
                 <Row>
-                    {/* Cột thông tin chính */}
                     <Col lg={8} className="mb-4">
                         <div className="lecturer-panel mb-0">
                             <div className="panel-header">Thông tin cơ bản</div>
@@ -305,7 +301,6 @@ const LecturerResourceForm = () => {
                         </div>
                     </Col>
 
-                    {/* Cột tài liệu liên quan */}
                     <Col lg={4}>
                         <div className="lecturer-panel sticky-top" style={{ top: "80px" }}>
                             <div className="panel-header">
@@ -333,7 +328,6 @@ const LecturerResourceForm = () => {
                                     </InputGroup>
                                 </Form.Group>
 
-                                {/* Kết quả tìm kiếm dropdown giả */}
                                 {searchRelKw.trim() && (
                                     <div className="border rounded bg-light p-2 mb-4" style={{ maxHeight: "200px", overflowY: "auto" }}>
                                         {searchingRel ? (
@@ -366,7 +360,6 @@ const LecturerResourceForm = () => {
                                     </div>
                                 )}
 
-                                {/* Danh sách đã chọn */}
                                 <div>
                                     <h6 className="fw-semibold mb-2" style={{ fontSize: "0.9rem" }}>
                                         Đã chọn ({selectedRelated.length})

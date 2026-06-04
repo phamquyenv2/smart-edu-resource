@@ -4,12 +4,16 @@
  */
 package com.paq.controllers.client;
 
+import com.paq.pojo.response.ResPageDTO;
 import com.paq.pojo.response.ResResourceDTO;
 import com.paq.pojo.response.ResResponse;
 import com.paq.service.StudentResourceService;
+import com.paq.utils.DTOMapper;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,14 +29,25 @@ public class ApiStudentResourceController {
     @Autowired
     private StudentResourceService resourceService;
 
-    @GetMapping("/resources")
-    public ResponseEntity<ResResponse<List<ResResourceDTO>>> getResources(
-            @RequestParam Map<String, String> params) {
+    @Autowired
+    private Environment env;
 
-        ResResponse<List<ResResourceDTO>> res = new ResResponse<>();
+    @GetMapping("/resources")
+    public ResponseEntity<ResResponse<ResPageDTO<ResResourceDTO>>> getResources(
+            @RequestParam Map<String, String> params) {
+        int page = params.containsKey("page") ? Integer.parseInt(params.get("page")) : 1;
+        int pageSize = this.env.getProperty("resources.page_size", Integer.class);
+
+        Map<String, String> countParams = new HashMap<>(params);
+        Long totalItems = this.resourceService.countResources(countParams);
+
+        ResPageDTO<ResResourceDTO> pageDTO = DTOMapper.toResPageDTO(
+                this.resourceService.getResources(params), totalItems, page, pageSize);
+
+        ResResponse<ResPageDTO<ResResourceDTO>> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Get resources successfully");
-        res.setData(this.resourceService.getResources(params));
+        res.setData(pageDTO);
 
         return ResponseEntity.ok(res);
     }

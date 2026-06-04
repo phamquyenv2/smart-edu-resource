@@ -87,6 +87,8 @@ const LecturerResource = () => {
 
     if (loading) return <MySpinner />;
 
+    console.log(resources);
+
     return (
         <>
             <div className="d-flex justify-content-between align-items-center mb-4">

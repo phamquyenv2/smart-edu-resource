@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.paq.pojo.Resource;
 import com.paq.pojo.ResourceRelation;
 import com.paq.repository.ResourceRepository;
+import com.paq.utils.constant.LevelEnum;
 
 import jakarta.persistence.NoResultException;
 
@@ -41,7 +42,21 @@ public class ResourceRepositoryImpl implements ResourceRepository {
     public List<Resource> getResources(Map<String, String> params) {
         Session s = this.factory.getObject().getCurrentSession();
 
-        String hql = "FROM Resource r WHERE r.isDeleted = false";
+        String hql = "SELECT DISTINCT r FROM Resource r";
+
+        if (params != null) {
+            if (params.containsKey("subjectId")) {
+                hql += " JOIN r.subjectSet subject";
+            }
+            if (params.containsKey("topicId")) {
+                hql += " JOIN r.topicSet topic";
+            }
+            if (params.containsKey("typeId")) {
+                hql += " JOIN r.resourceTypeSet resourceType";
+            }
+        }
+
+        hql += " WHERE r.isDeleted = false";
 
         if (params != null) {
             if (params.containsKey("keyword")) {
@@ -51,7 +66,13 @@ public class ResourceRepositoryImpl implements ResourceRepository {
                 hql += " AND r.level = :level";
             }
             if (params.containsKey("subjectId")) {
-                hql += " AND :subjectId MEMBER OF r.subjectSet";
+                hql += " AND subject.id = :subjectId";
+            }
+            if (params.containsKey("topicId")) {
+                hql += " AND topic.id = :topicId";
+            }
+            if (params.containsKey("typeId")) {
+                hql += " AND resourceType.id = :typeId";
             }
             if (params.containsKey("uploaderId")) {
                 hql += " AND r.uploadBy.id = :uploaderId";
@@ -65,10 +86,16 @@ public class ResourceRepositoryImpl implements ResourceRepository {
                 q.setParameter("kw", "%" + params.get("keyword") + "%");
             }
             if (params.containsKey("level")) {
-                q.setParameter("level", params.get("level"));
+                q.setParameter("level", LevelEnum.valueOf(params.get("level")));
             }
             if (params.containsKey("subjectId")) {
                 q.setParameter("subjectId", Integer.parseInt(params.get("subjectId")));
+            }
+            if (params.containsKey("topicId")) {
+                q.setParameter("topicId", Integer.parseInt(params.get("topicId")));
+            }
+            if (params.containsKey("typeId")) {
+                q.setParameter("typeId", Integer.parseInt(params.get("typeId")));
             }
             if (params.containsKey("uploaderId")) {
                 q.setParameter("uploaderId", Integer.parseInt(params.get("uploaderId")));
@@ -90,7 +117,21 @@ public class ResourceRepositoryImpl implements ResourceRepository {
     public Long countResources(Map<String, String> params) {
         Session s = this.factory.getObject().getCurrentSession();
 
-        String hql = "SELECT COUNT(r) FROM Resource r WHERE r.isDeleted = false";
+        String hql = "SELECT COUNT(DISTINCT r) FROM Resource r";
+
+        if (params != null) {
+            if (params.containsKey("subjectId")) {
+                hql += " JOIN r.subjectSet subject";
+            }
+            if (params.containsKey("topicId")) {
+                hql += " JOIN r.topicSet topic";
+            }
+            if (params.containsKey("typeId")) {
+                hql += " JOIN r.resourceTypeSet resourceType";
+            }
+        }
+
+        hql += " WHERE r.isDeleted = false";
 
         if (params != null) {
             if (params.containsKey("keyword")) {
@@ -100,7 +141,13 @@ public class ResourceRepositoryImpl implements ResourceRepository {
                 hql += " AND r.level = :level";
             }
             if (params.containsKey("subjectId")) {
-                hql += " AND :subjectId MEMBER OF r.subjectSet";
+                hql += " AND subject.id = :subjectId";
+            }
+            if (params.containsKey("topicId")) {
+                hql += " AND topic.id = :topicId";
+            }
+            if (params.containsKey("typeId")) {
+                hql += " AND resourceType.id = :typeId";
             }
             if (params.containsKey("uploaderId")) {
                 hql += " AND r.uploadBy.id = :uploaderId";
@@ -114,10 +161,16 @@ public class ResourceRepositoryImpl implements ResourceRepository {
                 q.setParameter("kw", "%" + params.get("keyword") + "%");
             }
             if (params.containsKey("level")) {
-                q.setParameter("level", params.get("level"));
+                q.setParameter("level", LevelEnum.valueOf(params.get("level")));
             }
             if (params.containsKey("subjectId")) {
                 q.setParameter("subjectId", Integer.parseInt(params.get("subjectId")));
+            }
+            if (params.containsKey("topicId")) {
+                q.setParameter("topicId", Integer.parseInt(params.get("topicId")));
+            }
+            if (params.containsKey("typeId")) {
+                q.setParameter("typeId", Integer.parseInt(params.get("typeId")));
             }
             if (params.containsKey("uploaderId")) {
                 q.setParameter("uploaderId", Integer.parseInt(params.get("uploaderId")));

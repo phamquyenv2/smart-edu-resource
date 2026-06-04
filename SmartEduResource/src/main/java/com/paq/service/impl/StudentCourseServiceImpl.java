@@ -5,11 +5,13 @@
 package com.paq.service.impl;
 
 import com.paq.pojo.Course;
+import com.paq.pojo.CourseLesson;
 import com.paq.pojo.Enrollment;
 import com.paq.pojo.Student;
 import com.paq.pojo.User;
 import com.paq.pojo.response.ResCourseDTO;
 import com.paq.pojo.response.ResEnrollmentDTO;
+import com.paq.repository.CourseLessonRepository;
 import com.paq.repository.CourseRepository;
 import com.paq.repository.EnrollmentRepository;
 import com.paq.service.StudentCourseService;
@@ -19,22 +21,26 @@ import com.paq.utils.constant.EnrollmentStatusEnum;
 import com.paq.utils.error.IdInvalidException;
 import com.paq.utils.error.PermissionException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
  * @author Admin
  */
 @Service
+@Transactional
 public class StudentCourseServiceImpl implements StudentCourseService {
 
     @Autowired
     private CourseRepository courseRepo;
+
+    @Autowired
+    private CourseLessonRepository courseLessonRepo;
 
     @Autowired
     private EnrollmentRepository enrollmentRepo;
@@ -43,8 +49,8 @@ public class StudentCourseServiceImpl implements StudentCourseService {
     private UserService userService;
 
     @Override
-    public List<ResCourseDTO> getCourses() {
-        return this.courseRepo.getCourses(new HashMap<>())
+    public List<ResCourseDTO> getCourses(Map<String, String> params) {
+        return this.courseRepo.getCourses(params)
                 .stream()
                 .map(c -> DTOMapper.toResCourseDTO(c))
                 .collect(Collectors.toList());
@@ -57,7 +63,13 @@ public class StudentCourseServiceImpl implements StudentCourseService {
             throw new IdInvalidException("Course không tồn tại");
         }
 
-        return DTOMapper.toResCourseDTO(c);
+        ResCourseDTO dto = DTOMapper.toResCourseDTO(c);
+        List<CourseLesson> lessons = this.courseLessonRepo.getLessonsByCourseId(id);
+        dto.setChapters(DTOMapper.toResCourseChapterList(lessons, false));
+        dto.setTotalLessons(lessons.size());
+        dto.setTotalChapters(dto.getChapters() != null ? dto.getChapters().size() : 0);
+
+        return dto;
     }
 
     @Override

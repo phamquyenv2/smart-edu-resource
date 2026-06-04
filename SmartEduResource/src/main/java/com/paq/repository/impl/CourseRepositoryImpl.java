@@ -7,6 +7,11 @@ package com.paq.repository.impl;
 import com.paq.pojo.Course;
 import com.paq.repository.CourseRepository;
 import jakarta.persistence.NoResultException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.hibernate.Session;
@@ -35,48 +40,27 @@ public class CourseRepositoryImpl implements CourseRepository {
 
     @Override
     public List<Course> getCourses(Map<String, String> params) {
-        Session s = this.factory.getObject().getCurrentSession();
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder b = session.getCriteriaBuilder();
+        CriteriaQuery<Course> q = b.createQuery(Course.class);
+        Root<Course> root = q.from(Course.class);
 
-        String hql = "FROM Course c WHERE c.isDeleted = false";
+        q.select(root).distinct(true);
 
-        if (params != null) {
-            if (params.containsKey("keyword")) {
-                hql += " AND c.name LIKE :kw";
-            }
-            if (params.containsKey("lecturerId")) {
-                hql += " AND c.lecturerId.id = :lecturerId";
-            }
-            if (params.containsKey("subjectId")) {
-                hql += " AND :subjectId MEMBER OF c.subjectSet";
-            }
-            if (params.containsKey("isPaid")) {
-                hql += " AND c.isPaid = :isPaid";
-            }
+        List<Predicate> predicates = this.buildCommonPredicates(b, root, params);
+        if (!predicates.isEmpty()) {
+            q.where(predicates.toArray(Predicate[]::new));
         }
+        q.orderBy(b.desc(root.get("id")));
 
-        Query<Course> q = s.createQuery(hql, Course.class);
-
-        if (params != null) {
-            if (params.containsKey("keyword")) {
-                q.setParameter("kw", "%" + params.get("keyword") + "%");
-            }
-            if (params.containsKey("lecturerId")) {
-                q.setParameter("lecturerId", Integer.parseInt(params.get("lecturerId")));
-            }
-            if (params.containsKey("isPaid")) {
-                q.setParameter("isPaid", Boolean.parseBoolean(params.get("isPaid")));
-            }
-        }
+        Query<Course> query = session.createQuery(q);
 
         int pageSize = this.env.getProperty("courses.page_size", Integer.class);
-        int page = 1;
-        if (params != null && params.containsKey("page")) {
-            page = Integer.parseInt(params.get("page"));
-        }
-        q.setMaxResults(pageSize);
-        q.setFirstResult((page - 1) * pageSize);
+        int page = params != null ? Integer.parseInt(params.getOrDefault("page", "1")) : 1;
+        query.setMaxResults(pageSize);
+        query.setFirstResult((page - 1) * pageSize);
 
-        return q.getResultList();
+        return query.getResultList();
     }
 
     @Override
@@ -124,39 +108,51 @@ public class CourseRepositoryImpl implements CourseRepository {
 
     @Override
     public Long countCourses(Map<String, String> params) {
-        Session s = this.factory.getObject().getCurrentSession();
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder b = session.getCriteriaBuilder();
+        CriteriaQuery<Long> q = b.createQuery(Long.class);
+        Root<Course> root = q.from(Course.class);
 
-        String hql = "SELECT COUNT(c) FROM Course c WHERE c.isDeleted = false";
+        q.select(b.countDistinct(root));
 
-        if (params != null) {
-            if (params.containsKey("keyword")) {
-                hql += " AND c.name LIKE :kw";
-            }
-            if (params.containsKey("lecturerId")) {
-                hql += " AND c.lecturerId.id = :lecturerId";
-            }
-            if (params.containsKey("subjectId")) {
-                hql += " AND :subjectId MEMBER OF c.subjectSet";
-            }
-            if (params.containsKey("isPaid")) {
-                hql += " AND c.isPaid = :isPaid";
-            }
+        List<Predicate> predicates = this.buildCommonPredicates(b, root, params);
+        if (!predicates.isEmpty()) {
+            q.where(predicates.toArray(Predicate[]::new));
         }
 
-        Query<Long> q = s.createQuery(hql, Long.class);
+        return session.createQuery(q).getSingleResult();
+    }
 
-        if (params != null) {
-            if (params.containsKey("keyword")) {
-                q.setParameter("kw", "%" + params.get("keyword") + "%");
-            }
-            if (params.containsKey("lecturerId")) {
-                q.setParameter("lecturerId", Integer.parseInt(params.get("lecturerId")));
-            }
-            if (params.containsKey("isPaid")) {
-                q.setParameter("isPaid", Boolean.parseBoolean(params.get("isPaid")));
-            }
+    private List<Predicate> buildCommonPredicates(CriteriaBuilder b, Root<Course> root,
+            Map<String, String> params) {
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(b.isFalse(root.get("isDeleted")));
+
+        if (params == null) {
+            return predicates;
         }
 
-        return q.getSingleResult();
+        String keyword = params.containsKey("keyword") ? params.get("keyword") : params.get("kw");
+        if (keyword != null && !keyword.isBlank()) {
+            predicates.add(b.like(b.lower(root.get("name")),
+                    String.format("%%%s%%", keyword.trim().toLowerCase())));
+        }
+
+        String lecturerId = params.get("lecturerId");
+        if (lecturerId != null && !lecturerId.isBlank()) {
+            predicates.add(b.equal(root.get("lecturerId").get("id"), Integer.parseInt(lecturerId)));
+        }
+
+        String subjectId = params.get("subjectId");
+        if (subjectId != null && !subjectId.isBlank()) {
+            predicates.add(b.equal(root.get("subjectId").get("id"), Integer.parseInt(subjectId)));
+        }
+
+        String isPaid = params.get("isPaid");
+        if (isPaid != null && !isPaid.isBlank()) {
+            predicates.add(b.equal(root.get("isPaid"), Boolean.parseBoolean(isPaid)));
+        }
+
+        return predicates;
     }
 }

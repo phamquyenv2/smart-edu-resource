@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button, Col, Container, Form, Row } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { Button, Col, Container, Form, Pagination, Row } from "react-bootstrap";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import MySpinner from "../../components/common/MySpinner";
 import CourseCard from "../../components/common/CourseCard";
@@ -10,29 +10,35 @@ const CourseBrowse = () => {
     const [courses, setCourses] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ kw: "", subjectId: "", priceType: "" });
+    const [q] = useSearchParams();
     const nav = useNavigate();
-    const [page, setPage] = useState(1);
-    const pageSize = 10;
-    const [hasNextPage, setHasNextPage] = useState(false);
+    const kwParam = q.get("kw") || "";
+    const subjectIdParam = q.get("subjectId") || "";
+    const priceTypeParam = q.get("priceType") || "";
+    const pageParam = Number.parseInt(q.get("page"), 10);
+    const currentPage = Number.isInteger(pageParam) && pageParam > 0 ? pageParam : 1;
+    const [filters, setFilters] = useState({ kw: kwParam, subjectId: subjectIdParam, priceType: priceTypeParam });
+    const [searchText, setSearchText] = useState(kwParam);
+    const pageSize = 9;
+    const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
         const load = async () => {
             try {
                 setLoading(true);
 
-                const params = [`page=${page}`];
+                const params = [`page=${currentPage}`];
 
-                if (filters.kw)
-                    params.push(`keyword=${encodeURIComponent(filters.kw)}`);
+                if (kwParam)
+                    params.push(`keyword=${encodeURIComponent(kwParam)}`);
 
-                if (filters.subjectId)
-                    params.push(`subjectId=${filters.subjectId}`);
+                if (subjectIdParam)
+                    params.push(`subjectId=${subjectIdParam}`);
 
-                if (filters.priceType === "free")
+                if (priceTypeParam === "free")
                     params.push("isPaid=false");
 
-                if (filters.priceType === "paid")
+                if (priceTypeParam === "paid")
                     params.push("isPaid=true");
 
                 const courseUrl = endpoints["courses"] + "?" + params.join("&");
@@ -52,8 +58,18 @@ const CourseBrowse = () => {
                     : coursesRes.data.data || [];
 
 
-                if (courseData.length === 0 && page > 1) {
-                    setPage(page - 1);
+                if (courseData.length === 0 && currentPage > 1) {
+                    const fallbackParams = new URLSearchParams();
+                    if (kwParam)
+                        fallbackParams.set("kw", kwParam);
+                    if (subjectIdParam)
+                        fallbackParams.set("subjectId", subjectIdParam);
+                    if (priceTypeParam)
+                        fallbackParams.set("priceType", priceTypeParam);
+                    if (currentPage - 1 > 1)
+                        fallbackParams.set("page", currentPage - 1);
+
+                    nav(fallbackParams.toString() ? `?${fallbackParams.toString()}` : "?");
                     return;
                 }
 
@@ -66,7 +82,7 @@ const CourseBrowse = () => {
                 setCourses(courseData);
                 setSubjects(subjectData);
                 const totalCourses = countRes.data.data || 0;
-                setHasNextPage(page * pageSize < totalCourses);
+                setTotalPages(Math.max(1, Math.ceil(totalCourses / pageSize)));
             } catch (ex) {
                 console.error(ex);
                 setCourses([]);
@@ -76,19 +92,53 @@ const CourseBrowse = () => {
         };
 
         load();
-    }, [filters, page]);
+    }, [kwParam, subjectIdParam, priceTypeParam, currentPage, nav]);
+
+    useEffect(() => {
+        setFilters({ kw: kwParam, subjectId: subjectIdParam, priceType: priceTypeParam });
+        setSearchText(kwParam);
+    }, [kwParam, subjectIdParam, priceTypeParam]);
+
+    const buildFilterParams = (nextFilters, page = 1) => {
+        const params = new URLSearchParams();
+
+        if (nextFilters.kw?.trim())
+            params.set("kw", nextFilters.kw.trim());
+        if (nextFilters.subjectId)
+            params.set("subjectId", nextFilters.subjectId);
+        if (nextFilters.priceType)
+            params.set("priceType", nextFilters.priceType);
+        if (page > 1)
+            params.set("page", page);
+
+        return params;
+    };
 
     const updateFilter = (field, value) => {
-        setPage(1);
-        setFilters(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        const nextFilters = { ...filters, [field]: value };
+        setFilters(nextFilters);
+        const params = buildFilterParams(nextFilters);
+        nav(params.toString() ? `?${params.toString()}` : "?");
     };
 
     const clearFilters = () => {
-        setPage(1);
+        setSearchText("");
         setFilters({ kw: "", subjectId: "", priceType: "" });
+        nav("?");
+    };
+
+    const handlePageChange = (page) => {
+        const params = buildFilterParams(filters, page);
+        nav(params.toString() ? `?${params.toString()}` : "?");
+    };
+
+    const handleSearchKeyDown = (e) => {
+        if (e.key === "Enter") {
+            const nextFilters = { ...filters, kw: searchText.trim() };
+            setFilters(nextFilters);
+            const params = buildFilterParams(nextFilters);
+            nav(params.toString() ? `?${params.toString()}` : "?");
+        }
     };
 
     return (
@@ -102,8 +152,9 @@ const CourseBrowse = () => {
                     <Form.Control
                         type="text"
                         placeholder="Tìm kiếm khóa học..."
-                        value={filters.kw}
-                        onChange={e => updateFilter("kw", e.target.value)}
+                        value={searchText}
+                        onChange={e => setSearchText(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         style={{ fontSize: "0.88rem" }}
                     />
                 </Col>
@@ -163,29 +214,17 @@ const CourseBrowse = () => {
                         ))}
                     </Row>
 
-                    <div className="d-flex justify-content-center gap-2 mt-4">
-                        <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            disabled={page === 1}
-                            onClick={() => setPage(page - 1)}
-                        >
-                            Trang trước
-                        </Button>
-
-                        <Button variant="light" size="sm" disabled>
-                            Trang {page}
-                        </Button>
-
-                        <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            disabled={!hasNextPage}
-                            onClick={() => setPage(page + 1)}
-                        >
-                            Trang sau
-                        </Button>
-                    </div>
+                    {totalPages > 1 && (
+                        <div className="d-flex justify-content-center mt-4">
+                            <Pagination>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
+                                    <Pagination.Item key={num} active={num === currentPage} onClick={() => handlePageChange(num)}>
+                                        {num}
+                                    </Pagination.Item>
+                                ))}
+                            </Pagination>
+                        </div>
+                    )}
                 </>
             )}
         </Container>

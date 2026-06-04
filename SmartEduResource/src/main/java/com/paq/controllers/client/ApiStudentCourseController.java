@@ -5,8 +5,10 @@
 package com.paq.controllers.client;
 
 import com.paq.pojo.response.ResCourseDTO;
+import com.paq.pojo.response.ResCourseLessonDTO;
 import com.paq.pojo.response.ResEnrollmentDTO;
 import com.paq.pojo.response.ResResponse;
+import com.paq.service.CourseLessonService;
 import com.paq.service.StudentCourseService;
 import java.security.Principal;
 import java.util.List;
@@ -27,12 +29,16 @@ public class ApiStudentCourseController {
     @Autowired
     private StudentCourseService studentCourseService;
 
+    @Autowired
+    private CourseLessonService lessonService;
+
     @GetMapping("/student/courses")
-    public ResponseEntity<ResResponse<List<ResCourseDTO>>> getCourses() {
+    public ResponseEntity<ResResponse<List<ResCourseDTO>>> getCourses(
+            @RequestParam Map<String, String> params) {
         ResResponse<List<ResCourseDTO>> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Get courses successfully");
-        res.setData(this.studentCourseService.getCourses());
+        res.setData(this.studentCourseService.getCourses(params));
 
         return ResponseEntity.ok(res);
     }
@@ -57,6 +63,17 @@ public class ApiStudentCourseController {
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Count courses successfully");
         res.setData(this.studentCourseService.countCourses(params));
+
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/student/courses/{courseId}/lessons")
+    public ResponseEntity<ResResponse<List<ResCourseLessonDTO>>> getCourseLessons(
+            @PathVariable("courseId") int courseId) {
+        ResResponse<List<ResCourseLessonDTO>> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Get course lessons successfully");
+        res.setData(this.lessonService.getLessonsByCourseId(courseId));
 
         return ResponseEntity.ok(res);
     }

@@ -5,7 +5,7 @@ import java.util.List;
 public class ResCourseChapterDTO {
 
     private Integer chapterNum;
-    private String chapterTitle;     // e.g. "Chương 1" or custom name
+    private String chapterTitle;
     private List<ResCourseLessonDTO> lessons;
 
     public ResCourseChapterDTO() {
