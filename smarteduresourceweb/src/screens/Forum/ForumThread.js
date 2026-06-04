@@ -1,17 +1,25 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Button, Container, Form } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 
 import MySpinner from "../../components/common/MySpinner";
+import { MyUserContext } from "../../configs/Context";
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 
 const ForumThread = () => {
     const { threadId } = useParams();
+    const [user] = useContext(MyUserContext);
     const [loading, setLoading] = useState(true);
     const [thread, setThread] = useState(null);
     const [posts, setPosts] = useState([]);
     const [replyText, setReplyText] = useState("");
+    const [submitting, setSubmitting] = useState(false);
     const nav = useNavigate();
+
+    const getData = (res, fallback) => {
+        if (Array.isArray(res.data)) return res.data;
+        return res.data.data || fallback;
+    };
 
     useEffect(() => {
         const loadThread = async () => {
@@ -31,8 +39,8 @@ const ForumThread = () => {
                     ? postsRes.data
                     : postsRes.data.data || [];
 
-                setThread(threadData);
-                setPosts(postsData);
+                setThread(getData(threadRes, null));
+                setPosts(getData(postsRes, []));
             } catch (err) {
                 console.error(err);
             } finally {
@@ -45,22 +53,29 @@ const ForumThread = () => {
 
     const handleReply = async (e) => {
         e.preventDefault();
+        if (!user) {
+            nav(`/login?next=/forum/threads/${threadId}`);
+            return;
+        }
         if (!replyText.trim()) return;
         try {
+            setSubmitting(true);
             const res = await authApis().post(
-                endpoints["forum-posts"](threadId),
+                endpoints["forum-post-create"](threadId),
                 {
-                    content: replyText
+                    content: replyText.trim()
                 }
             );
 
             const newPost = Array.isArray(res.data) ? res.data : res.data.data || res.data;
 
-            setPosts([...posts, newPost]);
+            setPosts(prev => [...prev, newPost]);
             setReplyText("");
         } catch (err) {
             console.error(err);
-            alert("Bạn cần đăng nhập hoặc không có quyền trả lời.");
+            alert("Trả lời thất bại. Kiểm tra token hoặc quyền truy cập.");
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -75,7 +90,7 @@ const ForumThread = () => {
         "Người dùng";
 
     const getCreatedAt = (p) =>
-        p.createdAt || p.created_at || "";
+        p.createdAt || "";
 
     return (
         <Container className="py-4">
@@ -85,11 +100,19 @@ const ForumThread = () => {
                 {thread?.title || "Chủ đề diễn đàn"}
             </h4>
 
+             {thread?.content && (
+                <div className="panel-card mb-4" style={{ padding: "16px" }}>
+                    <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.6 }}>
+                        {thread.content}
+                    </p>
+                </div>
+            )}
+
             <div className="panel-card mb-4">
-                <div style={{ padding: '16px' }}>
+                <div style={{ padding: "16px" }}>
                     {posts.length === 0 ? (
                         <div className="empty-state">
-                            <h5>Chưa có bài viết nào</h5>
+                            <h5>Chưa có câu trả lời nào</h5>
                         </div>
                     ) : (
                         posts.map(p => {
@@ -143,7 +166,7 @@ const ForumThread = () => {
                         value={replyText}
                         onChange={e => setReplyText(e.target.value)}
                         className="mb-2"
-                    /><Button type="submit" variant="primary" size="sm">Gửi</Button>
+                    /><Button type="submit" variant="primary" size="sm" disabled={submitting}>{submitting ? "Đang gửi..." : "Gửi"}</Button>
                 </Form>
             </div>
         </Container>
