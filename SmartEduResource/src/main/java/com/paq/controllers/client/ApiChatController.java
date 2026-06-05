@@ -1,5 +1,6 @@
 package com.paq.controllers.client;
 
+import com.paq.pojo.request.ReqPrivateChatRoomDTO;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,10 @@ import com.paq.pojo.response.ResPageDTO;
 import com.paq.pojo.response.ResResponse;
 import com.paq.service.ChatParticipantService;
 import com.paq.service.ChatRoomService;
+import jakarta.validation.Valid;
+import java.security.Principal;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/secure/student")
@@ -56,6 +61,42 @@ public class ApiChatController {
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Lấy danh sách người tham gia phòng chat thành công");
         res.setData(this.participantService.getParticipantsByRoomId(roomId, params));
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/chat-rooms/private")
+    public ResponseEntity<ResResponse<ResChatRoomDTO>> createPrivateRoomWithLecturer(
+            @Valid @RequestBody ReqPrivateChatRoomDTO request) {
+
+        ResResponse<ResChatRoomDTO> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Lấy hoặc tạo phòng chat riêng với giảng viên thành công");
+        res.setData(this.roomService.createPrivateRoomWithLecturer(request));
+
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/chat-rooms/private/course/{courseId}")
+    public ResponseEntity<ResResponse<ResChatRoomDTO>> getOrCreatePrivateRoomByCourse(
+            @PathVariable("courseId") int courseId) {
+
+        ResResponse<ResChatRoomDTO> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Lấy hoặc tạo phòng chat riêng với giảng viên thành công");
+        res.setData(this.roomService.getOrCreatePrivateRoomByCourse(courseId));
+
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/chat-rooms/class/course/{courseId}")
+    public ResponseEntity<ResResponse<ResChatRoomDTO>> getOrCreateClassRoomByCourse(
+            @PathVariable("courseId") int courseId) {
+
+        ResResponse<ResChatRoomDTO> res = new ResResponse<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Lấy hoặc tạo phòng thảo luận lớp thành công");
+        res.setData(this.roomService.getOrCreateClassRoomByCourse(courseId));
+
         return ResponseEntity.ok(res);
     }
 }

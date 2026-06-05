@@ -35,14 +35,4 @@ public class ApiEnrollmentController {
         return ResponseEntity.ok(res);
     }
 
-    @PostMapping("/courses/{courseId}/enroll")
-    public ResponseEntity<ResResponse<ResEnrollmentDTO>> enrollSelf(@PathVariable int courseId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        ResResponse<ResEnrollmentDTO> res = new ResResponse<>();
-        res.setStatusCode(HttpStatus.CREATED.value());
-        res.setMessage("Đăng ký khóa học thành công");
-        res.setData(this.enrollmentService.enrollSelf(courseId, auth != null ? auth.getName() : null));
-
-        return new ResponseEntity<>(res, HttpStatus.CREATED);
-    }
 }

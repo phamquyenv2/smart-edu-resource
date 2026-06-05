@@ -429,7 +429,16 @@ const CourseDetail = () => {
                                     <Button
                                         variant="outline-primary"
                                         className="cd-dm-btn w-100"
-                                        onClick={() => nav('/chat')}
+                                        onClick={() => {
+                                            if (!isEnrolled) {
+                                                alert(
+                                                    "Bạn phải đăng ký khóa học này thì mới có thể thảo luận hoặc nhắn tin với giảng viên."
+                                                );
+                                                return;
+                                            }
+
+                                            nav('/chat?courseId=${course.id}');
+                                        }}
                                     >
                                         Nhắn tin với giảng viên
                                     </Button>

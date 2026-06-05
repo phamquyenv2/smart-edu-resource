@@ -44,6 +44,7 @@ const CourseLearn = () => {
         return raw?.items || raw?.content || raw?.data || [];
     };
 
+
     const normalizeMessage = (m) => {
         const senderName =
             m.sender?.fullName ||
@@ -68,6 +69,14 @@ const CourseLearn = () => {
                 ? new Date(m.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
                 : ""
         };
+    };
+
+    const hasCourseAccess = () => {
+        return learnData?.hasAccess === true && learnData?.enrollmentStatus === "SUCCESS";
+    };
+
+    const showCourseAccessAlert = () => {
+        alert("Bạn phải thuộc khóa học này thì mới có thể thảo luận hoặc nhắn tin riêng cho giảng viên của môn này.");
     };
 
     useEffect(() => {
@@ -104,6 +113,13 @@ const CourseLearn = () => {
     };
 
     const loadChatRooms = async (courseData) => {
+        setGroupRoom(null);
+        setDmRoom(null);
+        setGroupMsgs([]);
+        setDmMsgs([]);
+        if (!courseData?.hasAccess || courseData?.enrollmentStatus !== "SUCCESS") {
+            return;
+        }
         try {
             const res = await authApis().get(endpoints["chat-rooms"]);
             const rooms = getData(res);
@@ -111,18 +127,20 @@ const CourseLearn = () => {
 
             const courseId = Number(id);
 
-            const group = rooms.find(r =>
-                Number(r.courseId) === Number(id) &&
+            let group = rooms.find(r =>
+                Number(r.courseId) === courseId &&
                 (r.type === "CLASS" || r.type === "GROUP" || r.roomType === "CLASS" || r.roomType === "GROUP")
             );
 
-            const dm = rooms.find(r =>
-                (r.courseId === courseId || r.course?.id === courseId) &&
-                (r.type === "DM" || r.roomType === "DM" || r.isGroup === false)
-            );
+            if (!group) {
+                const groupRes = await authApis().post(
+                    endpoints["chat-class-room-by-course"](courseId)
+                );
+
+                group = groupRes.data.data;
+            }
 
             setGroupRoom(group || null);
-            setDmRoom(dm || null);
 
             if (group?.createdBy?.fullName) {
                 setLearnData(prev => ({
@@ -139,16 +157,34 @@ const CourseLearn = () => {
                 setGroupMsgs([]);
             }
 
-            if (dm?.id) {
-                const msgRes = await authApis().get(endpoints["chat-messages"](dm.id));
+            let privateRoom = null;
+
+            try {
+                const dmRes = await authApis().post(
+                    endpoints["chat-private-room-by-course"](courseId)
+                );
+
+                privateRoom = dmRes.data.data;
+            } catch (dmErr) {
+                console.error("Không tạo được phòng chat riêng", dmErr);
+                privateRoom = null;
+            }
+
+            setDmRoom(privateRoom || null);
+
+            if (privateRoom?.id) {
+                const msgRes = await authApis().get(endpoints["chat-messages"](privateRoom.id));
                 setDmMsgs(getData(msgRes).map(normalizeMessage));
             } else {
                 setDmMsgs([]);
             }
+
         } catch (err) {
             console.error(err);
             setGroupMsgs([]);
             setDmMsgs([]);
+            setGroupRoom(null);
+            setDmRoom(null);
         }
     };
 
@@ -158,6 +194,11 @@ const CourseLearn = () => {
 
     const sendGroupMsg = async (e) => {
         e.preventDefault();
+
+        if (!hasCourseAccess()) {
+            showCourseAccessAlert();
+            return;
+        }
 
         if (!chatInput.trim()) return;
 
@@ -189,10 +230,15 @@ const CourseLearn = () => {
     const sendDmMsg = async (e) => {
         e.preventDefault();
 
+        if (!hasCourseAccess()) {
+            showCourseAccessAlert();
+            return;
+        }
+
         if (!dmInput.trim()) return;
 
         if (!dmRoom?.id) {
-            alert("Chưa có phòng nhắn tin với giảng viên.");
+            alert("Chưa có phòng nhắn tin riêng với giảng viên.");
             return;
         }
 
@@ -435,7 +481,13 @@ const CourseLearn = () => {
                                 <button
                                     key={key}
                                     className={`cl-tab-btn ${activeTab === key ? 'active' : ''}`}
-                                    onClick={() => setActiveTab(key)}
+                                    onClick={() => {
+                                        if (!hasCourseAccess()) {
+                                            showCourseAccessAlert();
+                                            return;
+                                        }
+                                        setActiveTab(key);
+                                    }}
                                 >
                                     {label}
                                 </button>

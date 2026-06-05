@@ -13,12 +13,14 @@ const Chat = () => {
     const [rooms, setRooms] = useState([]);
     const [messageLoading, setMessageLoading] = useState(false);
     const [activeRoom, setActiveRoom] = useState(null);
+    const [roomParticipants, setRoomParticipants] = useState({});
     const [messages, setMessages] = useState([]);
     const [msgText, setMsgText] = useState("");
 
     const nav = useNavigate();
     const [q] = useSearchParams();
     const roomIdParam = q.get("room");
+    const courseIdParam = q.get("courseId");
 
     useEffect(() => {
         if (!user) { nav('/login'); return; }
@@ -39,6 +41,14 @@ const Chat = () => {
         return [];
     };
 
+    const getParticipantsEndpoint = (roomId) => {
+        if (user.role === "LECTURER" || user.role === "ADMIN") {
+            return endpoints["lecturer-chat-participants"](roomId);
+        }
+
+        return endpoints["chat-room-participants"](roomId);
+    };
+
     const loadRooms = async () => {
         setLoading(true);
         try {
@@ -50,18 +60,46 @@ const Chat = () => {
             const res = await authApis().get(url);
             const loadedRooms = normalizeData(res);
 
-            setRooms(loadedRooms);
+            let filteredRooms = loadedRooms;
 
-            if (loadedRooms.length > 0) {
+            if (courseIdParam) {
+                filteredRooms = loadedRooms.filter(
+                    r => Number(r.courseId) === Number(courseIdParam)
+                );
+            }
+
+            const participantsMap = {};
+
+            await Promise.all(
+                filteredRooms.map(async (room) => {
+                    try {
+                        const pRes = await authApis().get(
+                            getParticipantsEndpoint(room.id)
+                        );
+
+                        participantsMap[room.id] = normalizeData(pRes);
+                    } catch (err) {
+                        console.error("Failed to load participants", err);
+                        participantsMap[room.id] = [];
+                    }
+                })
+            );
+
+            setRoomParticipants(participantsMap);
+            setRooms(filteredRooms);
+
+            if (filteredRooms.length > 0) {
                 if (roomIdParam) {
-                    const targetRoom = loadedRooms.find(
+                    const targetRoom = filteredRooms.find(
                         r => r.id?.toString() === roomIdParam
                     );
 
-                    setActiveRoom(targetRoom || loadedRooms[0]);
+                    setActiveRoom(targetRoom || filteredRooms[0]);
                 } else {
-                    setActiveRoom(loadedRooms[0]);
+                    setActiveRoom(filteredRooms[0]);
                 }
+            } else {
+                setActiveRoom(null);
             }
         } catch (err) {
             console.error("Failed to load chat rooms", err);
@@ -112,10 +150,54 @@ const Chat = () => {
     };
 
     const getRoomName = (room) => {
+        if (!room) return "";
+
+        if (room.type === "CLASS") {
+            return room.name || room.roomName || room.courseName || `Lớp học #${room.id}`;
+        }
+
+        if (room.type === "PRIVATE" || room.type === "DM") {
+
+
+            if (user.role === "STUDENT") {
+                return (
+                    room.createdBy?.fullName ||
+                    room.createdBy?.username ||
+                    room.courseName ||
+                    "Giảng viên"
+                );
+            }
+
+
+            const participants = roomParticipants[room.id] || [];
+
+            const student = participants.find(
+                p =>
+                    p.user?.role === "STUDENT" &&
+                    p.user?.id !== user.id
+            );
+
+            return (
+                student?.user?.fullName ||
+                student?.user?.username ||
+                "Sinh viên"
+            );
+        }
+
         return room.name || room.roomName || `Phòng chat #${room.id}`;
     };
 
     const getRoomSubText = (room) => {
+        if (!room) return "";
+
+        if (room.type === "PRIVATE" || room.type === "DM") {
+            return room.courseName || "Tin nhắn riêng";
+        }
+
+        if (room.type === "CLASS") {
+            return room.courseName || "Thảo luận lớp học";
+        }
+
         return room.courseName || room.type || "Phòng chung";
     };
 

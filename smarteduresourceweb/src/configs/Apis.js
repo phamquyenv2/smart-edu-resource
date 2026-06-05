@@ -56,8 +56,12 @@ export const endpoints = {
     'forum-post-create': (threadId) => `/secure/student/forum-threads/${threadId}/posts`,
     'chat-rooms': '/secure/student/chat-rooms',
     'chat-room-detail': (id) => `/secure/chat-rooms/${id}`,
+    'chat-room-participants': (roomId) => `/secure/student/chat-rooms/${roomId}/participants`,
+    'chat-private-room-by-course': (courseId) => `/secure/student/chat-rooms/private/course/${courseId}`,
+    'chat-class-room-by-course': (courseId) => `/secure/student/chat-rooms/class/course/${courseId}`,
     'chat-messages': (roomId) => `/secure/chat-rooms/${roomId}/messages`,
     'chat-send-message': (roomId) => `/secure/chat-rooms/${roomId}/messages`,
+    'chat-private-room': '/secure/student/chat-rooms/private',
     'payments': '/secure/payments',
     'payment-detail': (id) => `/secure/payments/${id}`,
     'payment-stats': '/secure/payments/stats',
@@ -117,7 +121,7 @@ export const endpoints = {
 
 export const authApis = () => {
     return axios.create({
-        baseURL: API_BASE_URL,
+        baseURL: 'http://localhost:8081/api/',
         headers: {
             'Authorization': `Bearer ${cookies.load('token')}`
         }
@@ -125,5 +129,5 @@ export const authApis = () => {
 };
 
 export default axios.create({
-    baseURL: API_BASE_URL
+    baseURL: 'http://localhost:8081/api/'
 });

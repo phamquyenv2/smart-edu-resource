@@ -19,4 +19,8 @@ public interface ChatRoomService {
     ResChatRoomDTO updateRoom(int id, ReqChatRoomDTO request);
 
     void deleteRoom(int id);
+
+    ResChatRoomDTO getOrCreatePrivateRoomByCourse(int courseId);
+    
+    ResChatRoomDTO getOrCreateClassRoomByCourse(int courseId);
 }
