@@ -68,7 +68,7 @@ const PaymentHistory = () => {
                                     <td>{idx + 1}</td>
                                     <td>{p.courseName || p.enrollmentCourseName || "Khóa học"}</td>
                                     <td>{p.amount.toLocaleString('vi-VN')}đ</td>
-                                    <td><Badge bg="light" text="dark">{p.method}</Badge></td>
+                                    <td><Badge bg="light" text="dark">{p.paymentMethod || "_"}</Badge></td>
                                     <td>{statusBadge(p.status)}</td>
                                     <td>{p.createdAt || p.paidAt}</td>
                                 </tr>

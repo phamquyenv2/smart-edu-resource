@@ -22,7 +22,7 @@ const Footer = () => {
                     </Col>
                 </Row>
                 <div className="copyright">
-                    &copy; {new Date().getFullYear()} Phạm Anh Quyền
+                    &copy; {new Date().getFullYear()} Phạm Anh Quyền vs Đỗ Phú Điền
                 </div>
             </Container>
         </footer>

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.paq.repository.DashboardRepository;
+import com.paq.utils.constant.EnrollmentStatusEnum;
 import com.paq.utils.constant.PaymentStatusEnum;
 import com.paq.utils.constant.RoleEnum;
 
@@ -291,9 +292,11 @@ public class DashboardRepositoryImpl implements DashboardRepository {
         Long result = session.createQuery(
                 "SELECT COUNT(e.id) "
                 + "FROM Enrollment e "
-                + "WHERE e.studentId.userId.username = :username",
+                + "WHERE e.studentId.userId.username = :username "
+                + "AND e.status = :status",
                 Long.class)
                 .setParameter("username", username)
+                .setParameter("status", EnrollmentStatusEnum.SUCCESS)
                 .getSingleResult();
 
         return this.safeLong(result);
@@ -307,7 +310,7 @@ public class DashboardRepositoryImpl implements DashboardRepository {
                 "SELECT COUNT(l.id) "
                 + "FROM LearningLog l "
                 + "WHERE l.enrollmentId.studentId.userId.username = :username "
-                + "AND l.completionStatus = 100",
+                + "AND l.completionStatus = 1",
                 Long.class)
                 .setParameter("username", username)
                 .getSingleResult();
