@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.paq.pojo.response.ResResourceDTO;
 import com.paq.pojo.response.ResResponse;
-import com.paq.service.ResourceService;
+import com.paq.service.StudentResourceService;
 
 @RestController
 @RequestMapping("/api")
 public class ApiResourceController {
 
     @Autowired
-    private ResourceService resourceService;
+    private StudentResourceService resourceService;
 
     @GetMapping("/resources")
     public ResponseEntity<ResResponse<List<ResResourceDTO>>> getResources(@RequestParam Map<String, String> params) {

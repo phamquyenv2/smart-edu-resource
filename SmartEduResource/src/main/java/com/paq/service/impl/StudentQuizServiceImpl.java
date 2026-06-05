@@ -16,6 +16,7 @@ import com.paq.pojo.request.ReqSubmitQuizDTO;
 import com.paq.pojo.response.ResQuizDTO;
 import com.paq.pojo.response.ResQuizResultDTO;
 import com.paq.repository.QuizRepository;
+import com.paq.service.PermissionService;
 import com.paq.service.StudentQuizService;
 import com.paq.service.UserService;
 import com.paq.utils.DTOMapper;
@@ -24,7 +25,6 @@ import com.paq.utils.error.IdInvalidException;
 import com.paq.utils.error.PermissionException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,10 @@ import org.springframework.stereotype.Service;
  *
  * @author Admin
  */
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
+@Transactional
 public class StudentQuizServiceImpl implements StudentQuizService {
 
     @Autowired
@@ -43,23 +46,32 @@ public class StudentQuizServiceImpl implements StudentQuizService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private PermissionService permissionService;
+
     private final SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Override
-    public List<ResQuizDTO> getQuizzes() {
-        return this.quizRepo.getQuizzes(new HashMap<>())
+    public List<ResQuizDTO> getQuizzes(String username) {
+        User user = this.permissionService.getCurrentUser();
+
+        return this.quizRepo.getQuizzes()
                 .stream()
+                .filter(q -> q.getCourseId() != null
+                        && this.permissionService.canAccessCourse(user, q.getCourseId().getId()))
                 .map(q -> DTOMapper.toResQuizDTO(q, false, false))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public ResQuizDTO getQuizById(int id) {
+    public ResQuizDTO getQuizById(String username, int id) {
         Quiz quiz = this.quizRepo.getQuizById(id);
 
         if (quiz == null) {
             throw new IdInvalidException("Quiz khong ton tai");
         }
+
+        this.permissionService.requireQuizAccess(id);
 
         return DTOMapper.toResQuizDTO(quiz, false, true);
     }
@@ -77,6 +89,8 @@ public class StudentQuizServiceImpl implements StudentQuizService {
         if (quiz == null) {
             throw new IdInvalidException("Quiz khong ton tai");
         }
+
+        this.permissionService.requireQuizAccess(quizId);
 
         Student student = user.getStudent();
 
@@ -165,6 +179,9 @@ public class StudentQuizServiceImpl implements StudentQuizService {
         if (attempt.getQuizId() != null) {
             dto.setQuizId(attempt.getQuizId().getId());
             dto.setQuizTitle(attempt.getQuizId().getTitle());
+            if (attempt.getQuizId().getCourseId() != null) {
+                dto.setCourseId(attempt.getQuizId().getCourseId().getId());
+            }
         }
 
         dto.setScore(attempt.getScore());

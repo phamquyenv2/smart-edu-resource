@@ -21,6 +21,7 @@ const Chat = () => {
     const [q] = useSearchParams();
     const roomIdParam = q.get("room");
     const courseIdParam = q.get("courseId");
+    const typeParam = q.get("type");
 
     useEffect(() => {
         if (!user) { nav('/login'); return; }
@@ -60,13 +61,32 @@ const Chat = () => {
             const res = await authApis().get(url);
             const loadedRooms = normalizeData(res);
 
+            console.log(
+                "ALL ROOMS DETAIL =",
+                loadedRooms.map(r => ({
+                    id: r.id,
+                    type: r.type,
+                    courseId: r.courseId,
+                    name: r.name,
+                    courseName: r.courseName
+                }))
+            );
+            console.log("courseIdParam =", courseIdParam);
+            console.log("typeParam =", typeParam);
+
             let filteredRooms = loadedRooms;
 
             if (courseIdParam) {
-                filteredRooms = loadedRooms.filter(
+                filteredRooms = filteredRooms.filter(
                     r => Number(r.courseId) === Number(courseIdParam)
                 );
             }
+            if (typeParam) {
+                filteredRooms = filteredRooms.filter(
+                    r => String(r.type).toUpperCase() === String(typeParam).toUpperCase()
+                );
+            }
+            console.log("FILTERED ROOMS =", filteredRooms);
 
             const participantsMap = {};
 
@@ -157,30 +177,25 @@ const Chat = () => {
         }
 
         if (room.type === "PRIVATE" || room.type === "DM") {
-
-
-            if (user.role === "STUDENT") {
-                return (
-                    room.createdBy?.fullName ||
-                    room.createdBy?.username ||
-                    room.courseName ||
-                    "Giảng viên"
-                );
-            }
-
-
             const participants = roomParticipants[room.id] || [];
 
-            const student = participants.find(
-                p =>
-                    p.user?.role === "STUDENT" &&
-                    p.user?.id !== user.id
-            );
+            const otherParticipant = participants.find(p => {
+                const u = p.user || p.userId || p.member || p.createdBy;
+                return u && Number(u.id) !== Number(user?.id);
+            });
+
+            const otherUser =
+                otherParticipant?.user ||
+                otherParticipant?.userId ||
+                otherParticipant?.member ||
+                otherParticipant?.createdBy ||
+                room.otherUser ||
+                room.targetUser;
 
             return (
-                student?.user?.fullName ||
-                student?.user?.username ||
-                "Sinh viên"
+                otherUser?.fullName ||
+                otherUser?.username ||
+                "Người nhận"
             );
         }
 

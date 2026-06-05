@@ -15,9 +15,9 @@ import java.util.List;
  */
 public interface StudentQuizService {
 
-    List<ResQuizDTO> getQuizzes();
+    List<ResQuizDTO> getQuizzes(String username);
 
-    ResQuizDTO getQuizById(int id);
+    ResQuizDTO getQuizById(String username, int id);
 
     ResQuizResultDTO submitQuiz(String username, int quizId, ReqSubmitQuizDTO request);
 

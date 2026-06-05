@@ -152,7 +152,7 @@ const CourseDetail = () => {
         }
 
         if (course.isPaid) {
-            nav(`/payments?courseId=${id}`);
+            nav(`/checkout/${id}`);
             return;
         }
 

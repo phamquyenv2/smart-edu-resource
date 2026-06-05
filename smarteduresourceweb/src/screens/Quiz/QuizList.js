@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { MyUserContext } from "../../configs/Context";
 import MySpinner from "../../components/common/MySpinner";
-import Apis, { endpoints } from "../../configs/Apis";
+import { authApis, endpoints } from "../../configs/Apis";
 
 const QuizList = () => {
     const [user] = useContext(MyUserContext);
@@ -16,7 +16,7 @@ const QuizList = () => {
         if (!user) { nav('/login'); return; }
         const loadQuizzes = async () => {
             try {
-                const res = await Apis.get(endpoints["quizzes"]);
+                const res = await authApis().get(endpoints["quizzes"]);
                 const data = Array.isArray(res.data) ? res.data : res.data.data || [];
                 setQuizzes(data);
             } catch (err) {

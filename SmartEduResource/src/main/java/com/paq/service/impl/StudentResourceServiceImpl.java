@@ -14,8 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.paq.pojo.Course;
+import com.paq.pojo.CourseLesson;
 import com.paq.pojo.Resource;
+import com.paq.pojo.response.ResCourseDTO;
 import com.paq.pojo.response.ResResourceDTO;
+import com.paq.repository.CourseLessonRepository;
 import com.paq.repository.ResourceRepository;
 import com.paq.service.StudentResourceService;
 import com.paq.utils.DTOMapper;
@@ -34,11 +38,14 @@ public class StudentResourceServiceImpl implements StudentResourceService {
     @Autowired
     private ResourceRepository resourceRepo;
 
+    @Autowired
+    private CourseLessonRepository lessonRepo;
+
     @Override
     public List<ResResourceDTO> getResources(Map<String, String> params) {
         return this.resourceRepo.getResources(params)
                 .stream()
-                .map(DTOMapper::toPublicResResourceDTO)
+                .map(this::toPublicResourceWithPaidCourses)
                 .collect(Collectors.toList());
     }
 
@@ -55,7 +62,7 @@ public class StudentResourceServiceImpl implements StudentResourceService {
             throw new IdInvalidException("Resource không tồn tại");
         }
 
-        return DTOMapper.toPublicResResourceDTO(r);
+        return this.toPublicResourceWithPaidCourses(r);
     }
 
     @Override
@@ -75,8 +82,36 @@ public class StudentResourceServiceImpl implements StudentResourceService {
 
         return new ArrayList<>(resources.values())
                 .stream()
-                .map(DTOMapper::toPublicResResourceDTO)
+                .map(this::toPublicResourceWithPaidCourses)
                 .collect(Collectors.toList());
+    }
+
+    private ResResourceDTO toPublicResourceWithPaidCourses(Resource resource) {
+        ResResourceDTO dto = DTOMapper.toPublicResResourceDTO(resource);
+
+        List<CourseLesson> lessons = this.lessonRepo.getLessonsByResourceId(resource.getId());
+
+        Map<Integer, ResCourseDTO> paidCoursesMap = new LinkedHashMap<>();
+        boolean hasFreePath = lessons.isEmpty();
+
+        for (CourseLesson lesson : lessons) {
+            Course course = lesson.getCourseId();
+            if (course == null) continue;
+
+            if (!Boolean.TRUE.equals(course.getIsPaid())) {
+                hasFreePath = true;
+            } else {
+                paidCoursesMap.putIfAbsent(course.getId(), DTOMapper.toResCourseDTO(course));
+
+                if (Boolean.TRUE.equals(lesson.getIsFree())) {
+                    hasFreePath = true;
+                }
+            }
+        }
+
+        dto.setPaidCourses(new ArrayList<>(paidCoursesMap.values()));
+        dto.setHasFreePath(hasFreePath);
+        return dto;
     }
 
 }

@@ -220,6 +220,25 @@ public class QuizRepositoryImpl implements QuizRepository {
     }
 
     @Override
+    public List<Integer> getSubmittedQuizIdsByStudentAndCourse(int studentId, int courseId) {
+        Session s = this.factory.getObject().getCurrentSession();
+
+        Query<Integer> q = s.createQuery(
+                "SELECT DISTINCT a.quizId.id FROM QuizAttempt a "
+                + "WHERE a.studentId.id = :studentId "
+                + "AND a.quizId.courseId.id = :courseId "
+                + "AND a.status IN (com.paq.utils.constant.AttemptStatusEnum.SUBMITTED, "
+                + "com.paq.utils.constant.AttemptStatusEnum.GRADED)",
+                Integer.class
+        );
+
+        q.setParameter("studentId", studentId);
+        q.setParameter("courseId", courseId);
+
+        return q.getResultList();
+    }
+
+    @Override
     public Quiz addOrUpdateQuiz(Quiz quiz) {
         Session s = this.factory.getObject().getCurrentSession();
         if (quiz.getId() != null) {

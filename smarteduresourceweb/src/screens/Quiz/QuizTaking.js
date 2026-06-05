@@ -23,8 +23,25 @@ const QuizTaking = () => {
                 );
 
                 const quizData = res.data.data;
+                const normalizedQuestions = Array.isArray(quizData?.questions)
+                    ? quizData.questions.map(question => {
+                        const options = Array.isArray(question?.options)
+                            ? question.options
+                            : Array.isArray(question?.answers)
+                                ? question.answers
+                                : [];
 
-                setQuiz(quizData);
+                        return {
+                            ...question,
+                            options
+                        };
+                    })
+                    : [];
+
+                setQuiz({
+                    ...quizData,
+                    questions: normalizedQuestions
+                });
                 setTimeLeft((quizData.durationMinutes || 30) * 60);
             } catch (ex) { console.error(ex); } finally { setLoading(false); }
         };
@@ -53,12 +70,13 @@ const QuizTaking = () => {
                 )
             };
 
-            await authApis().post(
+            const res = await authApis().post(
                 endpoints["student-quiz-submit"](id),
                 payload
             );
 
-            nav(`/quizzes/${id}/result`);
+            const courseId = res.data?.data?.courseId || quiz?.courseId;
+            nav(courseId ? `/courses/${courseId}/learn` : "/courses");
 
         } catch (err) {
             console.error(err);
@@ -69,7 +87,7 @@ const QuizTaking = () => {
     if (loading) return <MySpinner />;
     if (!quiz) return <Container className="py-4"><Alert variant="danger">Không tìm thấy bài kiểm tra.</Alert></Container>;
 
-    const questions = quiz?.questions || [];
+    const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
     const q = questions[currentQ];
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
@@ -101,7 +119,7 @@ const QuizTaking = () => {
                                 </div>
                                 <p style={{ fontSize: '1rem', lineHeight: 1.6, marginBottom: '20px' }}>{q.content}</p>
                                 <Form>
-                                    {q.options.map(opt => (
+                                    {(Array.isArray(q.options) ? q.options : []).map(opt => (
                                         <Form.Check
                                             key={opt.id}
                                             type="radio"

@@ -29,4 +29,5 @@ replay_pid*
 # Local secrets
 src/main/resources/cloudinary.properties
 src/main/resources/databases.properties
+src/main/resources/momo.properties
 /docs/

@@ -25,7 +25,7 @@ const StudentDashboard = () => {
                     authApis().get(endpoints["student-dashboard"]),
                     authApis().get(endpoints["my-enrollments"]),
                     Apis.get(endpoints["resources"]),
-                    Apis.get(endpoints["quizzes"])
+                    authApis().get(endpoints["quizzes"])
                 ]);
                 setDashboard(dashboardRes.data.data);
 

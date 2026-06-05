@@ -55,6 +55,19 @@ public class LearningLogRepositoryImpl implements LearningLogRepository {
     }
 
     @Override
+    public List<Integer> getCompletedResourceIdsByEnrollmentId(int enrollmentId) {
+        Session s = this.factory.getObject().getCurrentSession();
+        Query<Integer> q = s.createQuery(
+                "SELECT DISTINCT l.resourceId.id FROM LearningLog l "
+                + "WHERE l.enrollmentId.id = :enrollmentId "
+                + "AND l.completionStatus = 1",
+                Integer.class
+        );
+        q.setParameter("enrollmentId", enrollmentId);
+        return q.getResultList();
+    }
+
+    @Override
     public long countCompletedResourcesByEnrollmentId(int enrollmentId) {
         Session s = this.factory.getObject().getCurrentSession();
         Query<Long> q = s.createQuery(

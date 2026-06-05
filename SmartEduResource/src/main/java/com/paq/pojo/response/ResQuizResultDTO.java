@@ -12,6 +12,7 @@ public class ResQuizResultDTO {
     private Integer attemptId;
     private Integer quizId;
     private String quizTitle;
+    private Integer courseId;
     private Double score;
     private Integer totalQuestions;
     private Integer correctAnswers;
@@ -41,6 +42,14 @@ public class ResQuizResultDTO {
 
     public void setQuizTitle(String quizTitle) {
         this.quizTitle = quizTitle;
+    }
+
+    public Integer getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(Integer courseId) {
+        this.courseId = courseId;
     }
 
     public Double getScore() {
