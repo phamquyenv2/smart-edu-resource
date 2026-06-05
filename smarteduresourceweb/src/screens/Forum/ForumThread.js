@@ -82,15 +82,11 @@ const ForumThread = () => {
     if (loading) return <MySpinner />;
 
     const getAuthorName = (p) =>
-        p.authorFullName ||
-        p.authorName ||
-        p.username ||
-        p.userFullName ||
-        p.author?.fullName ||
+        p.user.fullName ||
         "Người dùng";
 
     const getCreatedAt = (p) =>
-        p.createdAt || "";
+        p.createdAt? new Date(p.createdAt).toLocaleDateString("vi-VN") : "";
 
     return (
         <Container className="py-4">
