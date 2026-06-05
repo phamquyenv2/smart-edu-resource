@@ -9,6 +9,8 @@ public interface SubjectService {
 
     List<ResSubjectDTO> getSubjects(Map<String, String> params);
 
+    long countSubjects(Map<String, String> params);
+
     ResSubjectDTO getSubjectById(int id);
 
     ResSubjectDTO createSubject(ReqSubjectDTO request);

@@ -85,6 +85,7 @@ export const endpoints = {
     'admin-payments': '/secure/admin/payments',
     'admin-payment-detail': (id) => `/secure/admin/payments/${id}`,
     'admin-payment-stats': '/secure/admin/payments/stats',
+    'admin-payment-stats-export': '/secure/admin/payments/stats/export',
     'admin-payment-status': (id) => `/secure/admin/payments/${id}/status`,
     'admin-forum-categories': '/secure/admin/forum-categories',
     'admin-forum-category-detail': (id) => `/secure/admin/forum-categories/${id}`,

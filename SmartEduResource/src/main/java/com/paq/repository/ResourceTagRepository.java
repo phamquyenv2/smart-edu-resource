@@ -9,6 +9,8 @@ public interface ResourceTagRepository {
 
     List<ResourceTag> getResourceTags(Map<String, String> params);
 
+    long countResourceTags(Map<String, String> params);
+
     ResourceTag getResourceTagById(int id);
 
     ResourceTag getResourceTagByName(String name);

@@ -9,6 +9,8 @@ public interface TopicService {
 
     List<ResCategoryDTO> getTopics(Map<String, String> params);
 
+    long countTopics(Map<String, String> params);
+
     ResCategoryDTO getTopicById(int id);
 
     ResCategoryDTO createTopic(ReqCategoryDTO request);

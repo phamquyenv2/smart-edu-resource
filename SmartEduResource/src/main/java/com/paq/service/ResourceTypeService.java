@@ -9,6 +9,8 @@ public interface ResourceTypeService {
 
     List<ResCategoryDTO> getResourceTypes(Map<String, String> params);
 
+    long countResourceTypes(Map<String, String> params);
+
     ResCategoryDTO getResourceTypeById(int id);
 
     ResCategoryDTO createResourceType(ReqCategoryDTO request);

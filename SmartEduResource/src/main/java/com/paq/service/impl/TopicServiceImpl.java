@@ -29,6 +29,11 @@ public class TopicServiceImpl implements TopicService {
     }
 
     @Override
+    public long countTopics(Map<String, String> params) {
+        return this.topicRepo.countTopics(params);
+    }
+
+    @Override
     public ResCategoryDTO getTopicById(int id) {
         Topic topic = this.topicRepo.getTopicById(id);
         if (topic == null || Boolean.TRUE.equals(topic.getIsDeleted())) {

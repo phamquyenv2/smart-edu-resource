@@ -1,24 +1,31 @@
 package com.paq.service.impl;
 
-import com.paq.pojo.Enrollment;
-import java.util.HashMap;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.paq.pojo.Enrollment;
 import com.paq.pojo.Payment;
 import com.paq.pojo.response.ResPaymentDTO;
 import com.paq.pojo.response.ResPaymentStatsDTO;
 import com.paq.pojo.response.ResRevenueByMonthDTO;
 import com.paq.repository.EnrollmentRepository;
 import com.paq.repository.PaymentRepository;
+import com.paq.repository.PaymentStatRepository;
 import com.paq.service.PaymentService;
 import com.paq.service.PermissionService;
 import com.paq.utils.DTOMapper;
@@ -32,6 +39,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Autowired
     private PaymentRepository paymentRepo;
+
+    @Autowired
+    private PaymentStatRepository paymentStatRepo;
 
     @Autowired
     private PermissionService permissionService;
@@ -92,21 +102,28 @@ public class PaymentServiceImpl implements PaymentService {
         this.validateDateRange(params);
 
         ResPaymentStatsDTO dto = new ResPaymentStatsDTO();
-        dto.setTotalRevenue(this.paymentRepo.getTotalRevenue(params));
-        dto.setTotalTransactions(this.paymentRepo.countPayments(params));
-        dto.setSuccessfulTransactions(this.paymentRepo.countPaymentsByStatus(PaymentStatusEnum.SUCCESS, params));
-        dto.setPendingTransactions(this.paymentRepo.countPaymentsByStatus(PaymentStatusEnum.PENDING, params));
-        dto.setRefundedTransactions(this.paymentRepo.countPaymentsByStatus(PaymentStatusEnum.REFUNDED, params));
-        dto.setCancelledTransactions(this.paymentRepo.countPaymentsByStatus(PaymentStatusEnum.CANCELLED, params));
+        dto.setTotalRevenue(this.paymentStatRepo.getTotalRevenue(params));
+        dto.setTotalTransactions(this.paymentStatRepo.countPayments(params));
+        dto.setSuccessfulTransactions(this.paymentStatRepo.countPaymentsByStatus(PaymentStatusEnum.SUCCESS, params));
+        dto.setPendingTransactions(this.paymentStatRepo.countPaymentsByStatus(PaymentStatusEnum.PENDING, params));
+        dto.setRefundedTransactions(this.paymentStatRepo.countPaymentsByStatus(PaymentStatusEnum.REFUNDED, params));
+        dto.setCancelledTransactions(this.paymentStatRepo.countPaymentsByStatus(PaymentStatusEnum.CANCELLED, params));
 
         Map<String, Long> methodCounts = new HashMap<>();
-        for (Map.Entry<PaymentMethodEnum, Long> entry : this.paymentRepo.countPaymentsByMethod(params).entrySet()) {
+        PaymentMethodEnum topMethod = null;
+        long topMethodCount = -1L;
+        for (Map.Entry<PaymentMethodEnum, Long> entry : this.paymentStatRepo.countPaymentsByMethod(params).entrySet()) {
             methodCounts.put(entry.getKey().name(), entry.getValue());
+            if (entry.getValue() > topMethodCount) {
+                topMethod = entry.getKey();
+                topMethodCount = entry.getValue();
+            }
         }
         dto.setMethodCounts(methodCounts);
+        dto.setTopPaymentMethod(topMethod != null ? topMethod.name() : null);
 
-        List<Object[]> monthlyData = this.paymentRepo.getRevenueByMonth(params);
-        List<ResRevenueByMonthDTO> revenueByMonth = new java.util.ArrayList<>();
+        List<Object[]> monthlyData = this.paymentStatRepo.getRevenueByMonth(params);
+        List<ResRevenueByMonthDTO> revenueByMonth = new ArrayList<>();
         for (Object[] row : monthlyData) {
             revenueByMonth.add(new ResRevenueByMonthDTO(
                     (Integer) row[0],
@@ -117,9 +134,88 @@ public class PaymentServiceImpl implements PaymentService {
         }
         dto.setRevenueByMonth(revenueByMonth);
 
-        dto.setUserRoleCounts(this.paymentRepo.countPaymentsByUserRole(params));
+        dto.setUserRoleCounts(this.paymentStatRepo.countPaymentsByUserRole(params));
 
         return dto;
+    }
+
+    @Override
+    public byte[] exportPaymentStats(Map<String, String> params) {
+        this.permissionService.requireAdmin();
+        ResPaymentStatsDTO stats = this.getPaymentStats(params);
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            this.writeOverviewSheet(workbook, stats);
+            this.writeRevenueSheet(workbook, stats.getRevenueByMonth());
+            this.writeMapSheet(workbook, "Phương thức thanh toán", "Phương thức", "Giao dịch", stats.getMethodCounts());
+            this.writeMapSheet(workbook, "Vai trò người dùng", "Vai trò", "Giao dịch", stats.getUserRoleCounts());
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException ex) {
+            throw new IllegalStateException("Không thể xuất báo cáo thanh toán", ex);
+        }
+    }
+
+    private void writeOverviewSheet(XSSFWorkbook workbook, ResPaymentStatsDTO stats) {
+        Sheet sheet = workbook.createSheet("Overview");
+        String[][] rows = {
+            {"Metric", "Value"},
+            {"Tổng doanh thu", String.valueOf(stats.getTotalRevenue())},
+            {"Tổng giao dịch", String.valueOf(stats.getTotalTransactions())},
+            {"Giao dịch thành công", String.valueOf(stats.getSuccessfulTransactions())},
+            {"Giao dịch đang chờ", String.valueOf(stats.getPendingTransactions())},
+            {"Giao dịch đã hoàn tiền", String.valueOf(stats.getRefundedTransactions())},
+            {"Giao dịch đã hủy", String.valueOf(stats.getCancelledTransactions())},
+            {"Top phương thức thanh toán", stats.getTopPaymentMethod() == null ? "" : stats.getTopPaymentMethod()}
+        };
+
+        for (int i = 0; i < rows.length; i++) {
+            Row row = sheet.createRow(i);
+            row.createCell(0).setCellValue(rows[i][0]);
+            row.createCell(1).setCellValue(rows[i][1]);
+        }
+        sheet.autoSizeColumn(0);
+        sheet.autoSizeColumn(1);
+    }
+
+    private void writeRevenueSheet(XSSFWorkbook workbook, List<ResRevenueByMonthDTO> revenueByMonth) {
+        Sheet sheet = workbook.createSheet("Doanh thu theo tháng");
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue("Năm");
+        header.createCell(1).setCellValue("Tháng");
+        header.createCell(2).setCellValue("Doanh thu");
+        header.createCell(3).setCellValue("Giao dịch");
+
+        int rowIndex = 1;
+        for (ResRevenueByMonthDTO item : revenueByMonth) {
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(item.getYear());
+            row.createCell(1).setCellValue(item.getMonth());
+            row.createCell(2).setCellValue(item.getRevenue());
+            row.createCell(3).setCellValue(item.getTransactions());
+        }
+
+        for (int i = 0; i < 4; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    private void writeMapSheet(XSSFWorkbook workbook, String sheetName, String keyHeader, String valueHeader,
+            Map<String, Long> values) {
+        Sheet sheet = workbook.createSheet(sheetName);
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue(keyHeader);
+        header.createCell(1).setCellValue(valueHeader);
+
+        int rowIndex = 1;
+        for (Map.Entry<String, Long> entry : values.entrySet()) {
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(entry.getKey());
+            row.createCell(1).setCellValue(entry.getValue());
+        }
+
+        sheet.autoSizeColumn(0);
+        sheet.autoSizeColumn(1);
     }
 
     @Override

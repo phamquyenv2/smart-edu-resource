@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Alert, Button, Form, Modal, Nav, Table } from "react-bootstrap";
+import { Alert, Button, Form, Modal, Nav, Pagination, Table } from "react-bootstrap";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { MyUserContext } from "../../configs/Context";
@@ -11,6 +11,8 @@ import "./Admin.css";
 const AdminCategory = () => {
     const [user] = useContext(MyUserContext);
     const [items, setItems] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState("");
     const [showModal, setShowModal] = useState(false);
@@ -24,42 +26,52 @@ const AdminCategory = () => {
         {
             key: "subjects",
             label: "Môn học",
-            listEndpoint: "subjects",
+            listEndpoint: "admin-subjects",
             endpoint: "admin-subjects",
             detailEndpoint: "admin-subject-detail"
         }, {
             key: "topics",
             label: "Chủ đề",
-            listEndpoint: "topics",
+            listEndpoint: "admin-topics",
             endpoint: "admin-topics",
             detailEndpoint: "admin-topic-detail"
         }, {
             key: "resource-tags",
             label: "Thẻ tài nguyên",
-            listEndpoint: "resource-tags",
+            listEndpoint: "admin-resource-tags",
             endpoint: "admin-resource-tags",
             detailEndpoint: "admin-resource-tag-detail"
         }, {
             key: "resource-types",
             label: "Loại tài liệu",
-            listEndpoint: "resource-types",
+            listEndpoint: "admin-resource-types",
             endpoint: "admin-resource-types",
             detailEndpoint: "admin-resource-type-detail"
         },];
 
     const currentTab = tabs.find(t => t.key === activeTab) || tabs[0];
-
     useEffect(() => {
         if (!user || user.role !== "ADMIN") { nav('/login'); return; }
         loadItems();
-    }, [user, nav, activeTab]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, nav, activeTab, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
 
     const loadItems = async () => {
         try {
             setLoading(true);
             setErr("");
-            let res = await authApis().get(endpoints[currentTab.listEndpoint]);
-            setItems(res.data.data || []);
+            let res = await authApis().get(endpoints[currentTab.listEndpoint], { params: { page: currentPage } });
+            const pageData = res.data.data;
+            if (pageData?.totalPages && currentPage > pageData.totalPages) {
+                setCurrentPage(pageData.totalPages);
+                return;
+            }
+            setItems(pageData?.items || []);
+            setTotalPages(pageData?.totalPages || 1);
         } catch (ex) {
             console.error(ex);
             setErr("Không thể tải danh sách.");
@@ -91,7 +103,15 @@ const AdminCategory = () => {
                     await authApis().post(endpoints[currentTab.endpoint], formData);
                 }
                 setShowModal(false);
-                loadItems();
+                if (!editingItem) {
+                    if (currentPage === 1) {
+                        loadItems();
+                    } else {
+                        setCurrentPage(1);
+                    }
+                } else {
+                    loadItems();
+                }
             } catch (ex) {
                 console.error(ex);
                 setErr(ex.response?.data?.message || "Có lỗi xảy ra khi lưu.");
@@ -176,6 +196,17 @@ const AdminCategory = () => {
                             )}
                         </tbody>
                     </Table>
+                    {totalPages > 1 && (
+                        <div className="d-flex justify-content-center mt-4">
+                            <Pagination>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
+                                    <Pagination.Item key={num} active={num === currentPage} onClick={() => setCurrentPage(num)}>
+                                        {num}
+                                    </Pagination.Item>
+                                ))}
+                            </Pagination>
+                        </div>
+                    )}
 
                 </div>
             )}

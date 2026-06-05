@@ -19,6 +19,8 @@ public interface PaymentService {
 
     ResPaymentStatsDTO getPaymentStats(Map<String, String> params);
 
+    byte[] exportPaymentStats(Map<String, String> params);
+
     List<ResPaymentDTO> getMyPayments(String username);
 
     ResPaymentDTO createPayment(int enrollmentId,
