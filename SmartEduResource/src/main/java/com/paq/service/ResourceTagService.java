@@ -9,6 +9,8 @@ public interface ResourceTagService {
 
     List<ResCategoryDTO> getResourceTags(Map<String, String> params);
 
+    long countResourceTags(Map<String, String> params);
+
     ResCategoryDTO getResourceTagById(int id);
 
     ResCategoryDTO createResourceTag(ReqCategoryDTO request);

@@ -17,8 +17,6 @@ const StudentDashboard = () => {
 
     useEffect(() => {
         if (!user) { nav('/login'); return; }
-        //const t = setTimeout(() => setLoading(false), 400);
-        //return () => clearTimeout(t);
         const loadDashboard = async () => {
             try {
                 const [dashboardRes, coursesRes, resourcesRes, quizzesRes] = await Promise.all([

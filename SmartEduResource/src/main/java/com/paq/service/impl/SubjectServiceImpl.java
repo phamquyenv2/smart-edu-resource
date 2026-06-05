@@ -30,6 +30,11 @@ public class SubjectServiceImpl implements SubjectService {
     }
 
     @Override
+    public long countSubjects(Map<String, String> params) {
+        return this.subjectRepo.countSubjects(params);
+    }
+
+    @Override
     public ResSubjectDTO getSubjectById(int id) {
         Subject subject = this.subjectRepo.getSubjectById(id);
         if (subject == null || Boolean.TRUE.equals(subject.getIsDeleted())) {

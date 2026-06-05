@@ -29,6 +29,11 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    public long countResourceTypes(Map<String, String> params) {
+        return this.resourceTypeRepo.countResourceTypes(params);
+    }
+
+    @Override
     public ResCategoryDTO getResourceTypeById(int id) {
         ResourceType resourceType = this.resourceTypeRepo.getResourceTypeById(id);
         if (resourceType == null || Boolean.TRUE.equals(resourceType.getIsDeleted())) {

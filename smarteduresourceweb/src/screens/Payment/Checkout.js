@@ -97,7 +97,6 @@ const Checkout = () => {
                 <h1 className="ck-main-title">Thanh toán khóa học</h1>
 
                 <Row className="g-4">
-                    {/* Cột trái: Thông tin khóa học */}
                     <Col lg={7}>
                         <div className="ck-card">
                             <div className="ck-card-header">
@@ -135,7 +134,6 @@ const Checkout = () => {
                         </div>
                     </Col>
 
-                    {/* Cột phải: Phương thức thanh toán */}
                     <Col lg={5}>
                         <div className="ck-card">
                             <div className="ck-card-header">

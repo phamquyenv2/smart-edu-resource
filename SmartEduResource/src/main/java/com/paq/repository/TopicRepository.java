@@ -9,6 +9,8 @@ public interface TopicRepository {
 
     List<Topic> getTopics(Map<String, String> params);
 
+    long countTopics(Map<String, String> params);
+
     Topic getTopicById(int id);
 
     Topic getTopicByName(String name);

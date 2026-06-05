@@ -30,4 +30,5 @@ replay_pid*
 src/main/resources/cloudinary.properties
 src/main/resources/databases.properties
 src/main/resources/momo.properties
+src/main/resources/xiaomimimo.properties
 /docs/

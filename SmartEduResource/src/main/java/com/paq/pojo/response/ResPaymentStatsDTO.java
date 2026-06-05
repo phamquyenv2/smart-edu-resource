@@ -11,6 +11,7 @@ public class ResPaymentStatsDTO {
     private Long pendingTransactions;
     private Long refundedTransactions;
     private Long cancelledTransactions;
+    private String topPaymentMethod;
     private Map<String, Long> methodCounts;
     private List<ResRevenueByMonthDTO> revenueByMonth;
     private Map<String, Long> userRoleCounts;
@@ -63,6 +64,14 @@ public class ResPaymentStatsDTO {
         this.cancelledTransactions = cancelledTransactions;
     }
 
+    public String getTopPaymentMethod() {
+        return topPaymentMethod;
+    }
+
+    public void setTopPaymentMethod(String topPaymentMethod) {
+        this.topPaymentMethod = topPaymentMethod;
+    }
+
     public Map<String, Long> getMethodCounts() {
         return methodCounts;
     }
@@ -86,4 +95,4 @@ public class ResPaymentStatsDTO {
     public void setUserRoleCounts(Map<String, Long> userRoleCounts) {
         this.userRoleCounts = userRoleCounts;
     }
-}
+}
