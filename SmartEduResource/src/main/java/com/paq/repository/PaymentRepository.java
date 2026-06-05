@@ -29,4 +29,6 @@ public interface PaymentRepository {
     List<Payment> getPaymentsByUsername(String username);
 
     Payment createPayment(Payment payment);
+
+    Payment getPaymentByTransactionCode(String transactionCode);
 }

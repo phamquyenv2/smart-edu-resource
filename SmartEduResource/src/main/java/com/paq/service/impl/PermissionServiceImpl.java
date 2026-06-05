@@ -14,6 +14,7 @@ import com.paq.pojo.Resource;
 import com.paq.pojo.User;
 import com.paq.repository.ChatParticipantRepository;
 import com.paq.repository.ChatRoomRepository;
+import com.paq.repository.CourseLessonRepository;
 import com.paq.repository.CourseRepository;
 import com.paq.repository.EnrollmentRepository;
 import com.paq.repository.PaymentRepository;
@@ -38,6 +39,9 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Autowired
     private CourseRepository courseRepo;
+
+    @Autowired
+    private CourseLessonRepository courseLessonRepo;
 
     @Autowired
     private EnrollmentRepository enrollmentRepo;
@@ -127,9 +131,36 @@ public class PermissionServiceImpl implements PermissionService {
             return;
         }
 
-        if (!this.isStudent(user) || !this.enrollmentRepo.existsByCourseIdAndUserId(courseId, user.getId())) {
+        if (!this.canAccessCourse(user, courseId)) {
             throw new PermissionException("Bạn chưa ghi danh khóa học này");
         }
+    }
+
+    @Override
+    public void requireCourseAccess(Integer courseId) {
+        User user = this.getCurrentUser();
+        Course course = this.courseRepo.getCourseById(courseId);
+        if (course == null) {
+            throw new IdInvalidException("Course khong ton tai");
+        }
+
+        if (!this.canAccessCourse(user, courseId)) {
+            throw new PermissionException("Ban khong co quyen truy cap khoa hoc nay");
+        }
+    }
+
+    @Override
+    public void requireQuizAccess(Integer quizId) {
+        Quiz quiz = this.quizRepo.getQuizById(quizId);
+        if (quiz == null || Boolean.TRUE.equals(quiz.getIsDeleted())) {
+            throw new IdInvalidException("Quiz khong ton tai");
+        }
+
+        if (quiz.getCourseId() == null || quiz.getCourseId().getId() == null) {
+            throw new PermissionException("Quiz khong thuoc khoa hoc nao");
+        }
+
+        this.requireCourseAccess(quiz.getCourseId().getId());
     }
 
     @Override
@@ -196,6 +227,33 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public boolean canManageChatRooms(User user) {
         return this.isAdmin(user);
+    }
+
+    @Override
+    public boolean canAccessCourse(User user, Integer courseId) {
+        if (user == null || courseId == null) {
+            return false;
+        }
+
+        Course course = this.courseRepo.getCourseById(courseId);
+        if (course == null) {
+            return false;
+        }
+
+        if (this.isAdmin(user) || (this.isLecturer(user) && this.isCourseLecturer(course, user))) {
+            return true;
+        }
+
+        if (!this.isStudent(user) || user.getStudent() == null) {
+            return false;
+        }
+
+        Integer studentId = user.getStudent().getId();
+        boolean hasEnrollment = this.courseLessonRepo.hasSuccessfulEnrollment(courseId, studentId);
+        boolean hasPayment = !Boolean.TRUE.equals(course.getIsPaid())
+                || this.courseLessonRepo.hasSuccessfulPayment(courseId, studentId);
+
+        return hasEnrollment && hasPayment;
     }
 
     @Override

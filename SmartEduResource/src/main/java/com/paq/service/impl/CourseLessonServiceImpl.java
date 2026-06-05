@@ -2,6 +2,7 @@ package com.paq.service.impl;
 
 import com.paq.pojo.Course;
 import com.paq.pojo.CourseLesson;
+import com.paq.pojo.Enrollment;
 import com.paq.pojo.Quiz;
 import com.paq.pojo.Resource;
 import com.paq.pojo.Student;
@@ -11,15 +12,20 @@ import com.paq.pojo.response.ResCourseLearnDTO;
 import com.paq.pojo.response.ResCourseLessonDTO;
 import com.paq.repository.CourseLessonRepository;
 import com.paq.repository.CourseRepository;
+import com.paq.repository.EnrollmentRepository;
+import com.paq.repository.LearningLogRepository;
+import com.paq.repository.QuizRepository;
 import com.paq.repository.UserRepository;
 import com.paq.service.CourseLessonService;
 import com.paq.service.NotificationPublisherService;
+import com.paq.service.PermissionService;
 import com.paq.utils.DTOMapper;
 import com.paq.utils.constant.RoleEnum;
 import com.paq.utils.error.IdInvalidException;
 import com.paq.utils.error.PermissionException;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +48,19 @@ public class CourseLessonServiceImpl implements CourseLessonService {
     private UserRepository userRepo;
 
     @Autowired
+    private EnrollmentRepository enrollmentRepo;
+
+    @Autowired
+    private LearningLogRepository learningLogRepo;
+
+    @Autowired
+    private QuizRepository quizRepo;
+
+    @Autowired
     private NotificationPublisherService notificationPublisher;
+
+    @Autowired
+    private PermissionService permissionService;
 
     @Override
     public ResCourseLearnDTO getLearnPage(int courseId, String username) {
@@ -61,14 +79,13 @@ public class CourseLessonServiceImpl implements CourseLessonService {
             throw new PermissionException("Không tìm thấy hồ sơ sinh viên");
         }
 
-        boolean hasEnrollment = this.lessonRepo.hasSuccessfulEnrollment(courseId, student.getId());
-        boolean hasPayment = !Boolean.TRUE.equals(course.getIsPaid())
-                || this.lessonRepo.hasSuccessfulPayment(courseId, student.getId());
-        boolean hasFullAccess = hasEnrollment && hasPayment;
-        String enrollmentStatus = hasEnrollment ? "SUCCESS" : null;
+        this.permissionService.requireCourseAccess(courseId);
 
         List<CourseLesson> lessons = this.lessonRepo.getLessonsByCourseId(courseId);
-        return DTOMapper.toResCourseLearnDTO(course, lessons, hasFullAccess, enrollmentStatus);
+        ResCourseLearnDTO dto = DTOMapper.toResCourseLearnDTO(course, lessons, true, "SUCCESS");
+        this.markCompletedLessons(dto, courseId, student.getId());
+
+        return dto;
     }
 
     @Override
@@ -164,6 +181,37 @@ public class CourseLessonServiceImpl implements CourseLessonService {
                 }
             }
         }
+    }
+
+    private void markCompletedLessons(ResCourseLearnDTO dto, int courseId, int studentId) {
+        if (dto == null || dto.getChapters() == null) {
+            return;
+        }
+
+        Enrollment enrollment = this.enrollmentRepo.findByCourseAndStudent(courseId, studentId);
+        if (enrollment == null) {
+            return;
+        }
+
+        Set<Integer> completedResourceIds = Set.copyOf(
+                this.learningLogRepo.getCompletedResourceIdsByEnrollmentId(enrollment.getId())
+        );
+        Set<Integer> completedQuizIds = Set.copyOf(
+                this.quizRepo.getSubmittedQuizIdsByStudentAndCourse(studentId, courseId)
+        );
+
+        dto.getChapters().forEach(chapter -> chapter.getLessons().forEach(lesson -> {
+            boolean resourceCompleted = lesson.getResourceId() != null
+                    && completedResourceIds.contains(lesson.getResourceId());
+            boolean quizCompleted = lesson.getQuizId() != null
+                    && completedQuizIds.contains(lesson.getQuizId());
+            boolean hasResource = lesson.getResourceId() != null;
+            boolean hasQuiz = lesson.getQuizId() != null;
+
+            lesson.setResourceCompleted(resourceCompleted);
+            lesson.setQuizCompleted(quizCompleted);
+            lesson.setCompleted((!hasResource || resourceCompleted) && (!hasQuiz || quizCompleted));
+        }));
     }
 
     private void requireLecturerOrAdmin() {

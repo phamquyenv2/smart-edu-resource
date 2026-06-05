@@ -32,7 +32,8 @@ const getBadgeLabel = (format, types) => {
 const ResourceCard = ({ resource }) => {
     const nav = useNavigate();
     const r = resource || {};
-
+    const isPaidCourseResource = (r.paidCourses || []).length > 0;
+    const isLocked = isPaidCourseResource && r.hasFreePath === false;
 
     return (
         <div className="res-card" onClick={() => nav(`/resources/${r.id}`)}>
@@ -44,9 +45,17 @@ const ResourceCard = ({ resource }) => {
                     <span className={`badge-dot ${getDotClass(r.format, r.types)}`}></span>
                     {getBadgeLabel(r.format, r.types)}
                 </div>
-                
+                <div className="res-tags-group">
                     <span className="res-subject-tag">{r.subjects?.[0]?.name || "Chưa phân loại"}</span>
-                
+                    {isLocked && (
+                        <span className="res-subject-tag res-locked-tag">
+                            <i className="bi bi-lock-fill"></i> Khóa học trả phí
+                        </span>
+                    )}
+                    {isPaidCourseResource && !isLocked && (
+                        <span className="res-subject-tag">Có trong khóa học trả phí</span>
+                    )}
+                </div>
             </div>
             <div className="res-card-body">
                 <div className="title">{r.title}</div>

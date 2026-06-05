@@ -41,4 +41,6 @@ public interface QuizRepository {
     StudentAnswer addStudentAnswer(StudentAnswer answer);
 
     List<QuizAttempt> getAttemptsByUsername(String username);
+
+    List<Integer> getSubmittedQuizIdsByStudentAndCourse(int studentId, int courseId);
 }

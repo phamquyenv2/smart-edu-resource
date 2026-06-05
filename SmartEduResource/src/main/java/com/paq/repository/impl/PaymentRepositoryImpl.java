@@ -359,4 +359,25 @@ public class PaymentRepositoryImpl implements PaymentRepository {
 
         return payment;
     }
+
+    @Override
+    public Payment getPaymentByTransactionCode(String transactionCode) {
+        try {
+            Session session = this.factory.getObject().getCurrentSession();
+            Query<Payment> q = session.createQuery(
+                    "SELECT p FROM Payment p "
+                    + "JOIN FETCH p.enrollmentId e "
+                    + "JOIN FETCH e.courseId c "
+                    + "JOIN FETCH e.studentId s "
+                    + "JOIN FETCH s.userId "
+                    + "WHERE p.transactionCode = :code "
+                    + "AND (c.isDeleted = false OR c.isDeleted IS NULL)",
+                    Payment.class);
+            q.setParameter("code", transactionCode);
+            return q.getSingleResult();
+        } catch (NoResultException ex) {
+            return null;
+        }
+    }
 }
+
