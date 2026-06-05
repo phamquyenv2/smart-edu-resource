@@ -5,8 +5,16 @@
 package com.paq.repository.impl;
 
 import com.paq.pojo.ChatMessage;
+import com.paq.pojo.ChatRoom;
 import com.paq.repository.ChatMessageRepository;
 import jakarta.persistence.NoResultException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.hibernate.Session;
@@ -37,26 +45,35 @@ public class ChatMessageRepositoryImpl implements ChatMessageRepository {
     public List<ChatMessage> getMessagesByRoomId(int roomId, Map<String, String> params) {
         Session s = this.factory.getObject().getCurrentSession();
 
-        Query<ChatMessage> q = s.createQuery(
-                "SELECT m FROM ChatMessage m "
-                + "JOIN FETCH m.senderId u "
-                + "JOIN FETCH m.roomId r "
-                + "WHERE r.id = :roomId "
-                + "AND (m.isDeleted = false OR m.isDeleted IS NULL) "
-                + "ORDER BY m.sentAt ASC, m.id ASC",
-                ChatMessage.class
-        );
+        CriteriaBuilder b = s.getCriteriaBuilder();
+        CriteriaQuery<ChatMessage> q = b.createQuery(ChatMessage.class);
+        Root<ChatMessage> root = q.from(ChatMessage.class);
 
-        q.setParameter("roomId", roomId);
+        root.fetch("senderId", JoinType.INNER);
+        root.fetch("roomId", JoinType.INNER);
+
+        Join<ChatMessage, ChatRoom> room = root.join("roomId", JoinType.INNER);
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(b.equal(room.get("id"), roomId));
+        predicates.add(b.or(
+                b.isFalse(root.get("isDeleted")),
+                b.isNull(root.get("isDeleted"))));
+
+        q.select(root)
+                .distinct(true)
+                .where(predicates.toArray(Predicate[]::new))
+                .orderBy(b.asc(root.get("sentAt")), b.asc(root.get("id")));
+
+        Query<ChatMessage> query = s.createQuery(q);
 
         if (params != null) {
             int pageSize = this.env.getProperty("chat_messages.page_size", Integer.class, 20);
             int page = Integer.parseInt(params.getOrDefault("page", "1"));
-            q.setFirstResult((page - 1) * pageSize);
-            q.setMaxResults(pageSize);
+            query.setFirstResult((page - 1) * pageSize);
+            query.setMaxResults(pageSize);
         }
 
-        return q.getResultList();
+        return query.getResultList();
     }
 
     @Override

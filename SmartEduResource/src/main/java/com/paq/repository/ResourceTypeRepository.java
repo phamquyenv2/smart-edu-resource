@@ -9,6 +9,8 @@ public interface ResourceTypeRepository {
 
     List<ResourceType> getResourceTypes(Map<String, String> params);
 
+    long countResourceTypes(Map<String, String> params);
+
     ResourceType getResourceTypeById(int id);
 
     ResourceType getResourceTypeByName(String name);

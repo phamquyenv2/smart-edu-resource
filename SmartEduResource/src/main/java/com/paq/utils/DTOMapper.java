@@ -21,6 +21,8 @@ import com.paq.pojo.ForumThread;
 import com.paq.pojo.Interaction;
 import com.paq.pojo.InteractionReply;
 import com.paq.pojo.LearningLog;
+import com.paq.pojo.LearningPath;
+import com.paq.pojo.LearningPathItem;
 import com.paq.pojo.Lecturer;
 import com.paq.pojo.Payment;
 import com.paq.pojo.Question;
@@ -50,6 +52,8 @@ import com.paq.pojo.response.ResForumThreadDTO;
 import com.paq.pojo.response.ResInteractionDTO;
 import com.paq.pojo.response.ResInteractionReplyDTO;
 import com.paq.pojo.response.ResLearningLogDTO;
+import com.paq.pojo.response.ResLearningPathDTO;
+import com.paq.pojo.response.ResLearningPathItemDTO;
 import com.paq.pojo.response.ResLearningProgressDTO;
 import com.paq.pojo.response.ResLecturerDTO;
 import com.paq.pojo.response.ResPageDTO;
@@ -96,6 +100,47 @@ public class DTOMapper {
             dto.setLecturerId(user.getLecturer().getId());
             dto.setLecturerApproved(user.getLecturer().getIsApprove());
         }
+
+        return dto;
+    }
+
+    public static ResLearningPathDTO toResLearningPathDTO(LearningPath lp) {
+        if (lp == null) return null;
+        
+        ResLearningPathDTO dto = new ResLearningPathDTO();
+        dto.setId(lp.getId());
+        dto.setTitle(lp.getTitle());
+        dto.setDescription(lp.getDescription());
+        dto.setGeneratedByAi(lp.getGeneratedByAi());
+        dto.setGoal(lp.getGoal());
+        dto.setCreatedAt(lp.getCreatedAt());
+        dto.setUpdatedAt(lp.getUpdatedAt());
+
+        if (lp.getStudentId() != null) {
+            dto.setStudentId(lp.getStudentId().getId());
+            if (lp.getStudentId().getUserId() != null) {
+                dto.setStudentName(lp.getStudentId().getUserId().getFullName());
+            }
+        }
+
+        if (lp.getRecommendedBy() != null) {
+            dto.setRecommendedByName(lp.getRecommendedBy().getFullName());
+        }
+
+        return dto;
+    }
+
+    public static ResLearningPathItemDTO toResLearningPathItemDTO(LearningPathItem item, String refName) {
+        if (item == null) return null;
+        
+        ResLearningPathItemDTO dto = new ResLearningPathItemDTO();
+        dto.setId(item.getId());
+        dto.setItemType(item.getItemType() != null ? item.getItemType().name() : null);
+        dto.setReferenceId(item.getReferenceId());
+        dto.setOrderNumber(item.getOrderNumber());
+        dto.setIsRequired(item.getIsRequired());
+
+        dto.setReferenceName(refName);
 
         return dto;
     }

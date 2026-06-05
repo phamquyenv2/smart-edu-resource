@@ -55,9 +55,9 @@ public class ResourceTagRepositoryImpl implements ResourceTagRepository {
 
         Query<ResourceTag> query = session.createQuery(q);
 
-        if (params != null) {
+        if (params != null && params.containsKey("page")) {
             int pageSize = this.env.getProperty("resource_tags.page_size", Integer.class);
-            int page = Integer.parseInt(params.getOrDefault("page", "1"));
+            int page = Integer.parseInt(params.get("page"));
             int start = (page - 1) * pageSize;
 
             query.setMaxResults(pageSize);
@@ -65,6 +65,30 @@ public class ResourceTagRepositoryImpl implements ResourceTagRepository {
         }
 
         return query.getResultList();
+    }
+
+    @Override
+    public long countResourceTags(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder b = session.getCriteriaBuilder();
+        CriteriaQuery<Long> q = b.createQuery(Long.class);
+        Root<ResourceTag> root = q.from(ResourceTag.class);
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(b.or(
+                b.isFalse(root.get("isDeleted")),
+                b.isNull(root.get("isDeleted"))));
+
+        if (params != null) {
+            String kw = params.get("kw");
+            if (kw != null && !kw.isEmpty()) {
+                predicates.add(b.like(root.get("name"), String.format("%%%s%%", kw)));
+            }
+        }
+
+        q.select(b.count(root.get("id")));
+        q.where(predicates.toArray(Predicate[]::new));
+        Long result = session.createQuery(q).getSingleResult();
+        return result == null ? 0L : result;
     }
 
     @Override

@@ -68,6 +68,30 @@ public class TopicRepositoryImpl implements TopicRepository {
     }
 
     @Override
+    public long countTopics(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder b = session.getCriteriaBuilder();
+        CriteriaQuery<Long> q = b.createQuery(Long.class);
+        Root<Topic> root = q.from(Topic.class);
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(b.or(
+                b.isFalse(root.get("isDeleted")),
+                b.isNull(root.get("isDeleted"))));
+
+        if (params != null) {
+            String kw = params.get("kw");
+            if (kw != null && !kw.isEmpty()) {
+                predicates.add(b.like(root.get("name"), String.format("%%%s%%", kw)));
+            }
+        }
+
+        q.select(b.count(root.get("id")));
+        q.where(predicates.toArray(Predicate[]::new));
+        Long result = session.createQuery(q).getSingleResult();
+        return result == null ? 0L : result;
+    }
+
+    @Override
     public Topic getTopicById(int id) {
         Session session = this.factory.getObject().getCurrentSession();
         Topic topic = session.get(Topic.class, id);

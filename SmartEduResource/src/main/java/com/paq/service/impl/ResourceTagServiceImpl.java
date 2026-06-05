@@ -29,6 +29,11 @@ public class ResourceTagServiceImpl implements ResourceTagService {
     }
 
     @Override
+    public long countResourceTags(Map<String, String> params) {
+        return this.resourceTagRepo.countResourceTags(params);
+    }
+
+    @Override
     public ResCategoryDTO getResourceTagById(int id) {
         ResourceTag resourceTag = this.resourceTagRepo.getResourceTagById(id);
         if (resourceTag == null || Boolean.TRUE.equals(resourceTag.getIsDeleted())) {
