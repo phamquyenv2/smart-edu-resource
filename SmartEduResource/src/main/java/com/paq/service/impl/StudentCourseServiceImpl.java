@@ -114,6 +114,7 @@ public class StudentCourseServiceImpl implements StudentCourseService {
 
         return this.enrollmentRepo.getEnrollmentsByStudentId(user.getStudent().getId())
                 .stream()
+                .filter(e -> EnrollmentStatusEnum.SUCCESS.equals(e.getStatus()))
                 .map(e -> DTOMapper.toResEnrollmentDTO(e))
                 .collect(Collectors.toList());
     }

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Badge, Button, Col, Container, Form, Modal, ProgressBar, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
@@ -44,24 +44,7 @@ const LearningPath = () => {
         source: "enrollment"
     });
 
-    const normalizeLearningPathStep = (item, index) => ({
-        id: item.id,
-        title: item.title || item.name || item.courseName || `Bước ${index + 1}`,
-        description: item.description || item.desc || item.note || "",
-        progress: item.progress || item.overallProgress || 0,
-        status: item.status || (
-            (item.progress || item.overallProgress || 0) >= 100
-                ? "done"
-                : (item.progress || item.overallProgress || 0) > 0
-                    ? "active"
-                    : "pending"
-        ),
-        completedResources: item.completedResources || item.completed || 0,
-        totalResources: item.totalResources || item.resources || 0,
-        source: "learning-path"
-    });
-
-    const loadLearningPath = async () => {
+    const loadLearningPath = useCallback(async () => {
         try {
             setLoading(true);
             setErr("");
@@ -76,7 +59,7 @@ const LearningPath = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         if (!user) {
@@ -85,7 +68,7 @@ const LearningPath = () => {
         }
 
         loadLearningPath();
-    }, [user, nav]);
+    }, [user, nav, loadLearningPath]);
 
     const handleGenerate = async () => {
         try {

@@ -33,6 +33,8 @@ import ForumThread from "./screens/Forum/ForumThread";
 import NewThread from "./screens/Forum/NewThread";
 import Chat from "./screens/Chat/Chat";
 import PaymentHistory from "./screens/Payment/PaymentHistory";
+import Checkout from "./screens/Payment/Checkout";
+import MoMoResult from "./screens/Payment/MoMoResult";
 
 import AdminLayout from "./components/Layouts/AdminLayout";
 import AdminDashboard from "./screens/Admin/AdminDashboard";
@@ -109,6 +111,8 @@ const AppLayout = () => {
                     <Route path="/forum/new-thread" element={<NewThread />} />
                     <Route path="/chat" element={<Chat />} />
                     <Route path="/payments" element={<PaymentHistory />} />
+                    <Route path="/checkout/:courseId" element={<Checkout />} />
+                    <Route path="/payments/momo-result" element={<MoMoResult />} />
                 </Routes>
             </main>
             {!isFullscreen && <Footer />}

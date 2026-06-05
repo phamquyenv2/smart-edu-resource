@@ -34,24 +34,25 @@ public class ApiStudentQuizController {
     @Autowired
     private StudentQuizService quizService;
 
-    @GetMapping("/student/quizzes")
-    public ResponseEntity<ResResponse<List<ResQuizDTO>>> getQuizzes() {
+    @GetMapping("/secure/student/quizzes")
+    public ResponseEntity<ResResponse<List<ResQuizDTO>>> getQuizzes(Principal principal) {
         ResResponse<List<ResQuizDTO>> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Get quizzes successfully");
-        res.setData(this.quizService.getQuizzes());
+        res.setData(this.quizService.getQuizzes(principal.getName()));
 
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/student/quizzes/{id}")
+    @GetMapping("/secure/student/quizzes/{id}")
     public ResponseEntity<ResResponse<ResQuizDTO>> getQuizDetail(
-            @PathVariable(value = "id") int id) {
+            @PathVariable(value = "id") int id,
+            Principal principal) {
 
         ResResponse<ResQuizDTO> res = new ResResponse<>();
         res.setStatusCode(HttpStatus.OK.value());
         res.setMessage("Get quiz detail successfully");
-        res.setData(this.quizService.getQuizById(id));
+        res.setData(this.quizService.getQuizById(principal.getName(), id));
 
         return ResponseEntity.ok(res);
     }

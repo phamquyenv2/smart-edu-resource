@@ -20,6 +20,10 @@ public interface PermissionService {
 
     void requireEnrollmentOrAdmin(Integer courseId);
 
+    void requireCourseAccess(Integer courseId);
+
+    void requireQuizAccess(Integer quizId);
+
     void requirePaymentOwnerOrAdmin(Integer paymentId);
 
     void requireQuizOwnerOrAdmin(Integer quizId);
@@ -29,4 +33,6 @@ public interface PermissionService {
     void requireChatRoomAccess(Integer roomId);
 
     boolean canManageChatRooms(User user);
+
+    boolean canAccessCourse(User user, Integer courseId);
 }

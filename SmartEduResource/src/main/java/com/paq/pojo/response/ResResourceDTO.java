@@ -8,7 +8,6 @@ package com.paq.pojo.response;
  *
  * @author Admin
  */
-
 import java.util.Date;
 import java.util.List;
 
@@ -32,6 +31,8 @@ public class ResResourceDTO {
     private List<ResCategoryDTO> tags;
     private List<ResCategoryDTO> types;
     private List<ResResourceDTO> relatedResources;
+    private List<ResCourseDTO> paidCourses;
+    private Boolean hasFreePath;
 
     public Integer getId() {
         return id;
@@ -175,5 +176,21 @@ public class ResResourceDTO {
 
     public void setRelatedResources(List<ResResourceDTO> relatedResources) {
         this.relatedResources = relatedResources;
+    }
+
+    public List<ResCourseDTO> getPaidCourses() {
+        return paidCourses;
+    }
+
+    public void setPaidCourses(List<ResCourseDTO> paidCourses) {
+        this.paidCourses = paidCourses;
+    }
+
+    public Boolean getHasFreePath() {
+        return hasFreePath;
+    }
+
+    public void setHasFreePath(Boolean hasFreePath) {
+        this.hasFreePath = hasFreePath;
     }
 }

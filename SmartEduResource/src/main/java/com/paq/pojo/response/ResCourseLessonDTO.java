@@ -8,21 +8,21 @@ public class ResCourseLessonDTO {
     private Integer lessonNum;
     private Boolean isFree;
 
-    // Resource info (null if quiz lesson)
     private Integer resourceId;
     private String resourceTitle;
     private String fileUrl;
     private String thumbnailUrl;
-    private String format;         // MP4, PDF, PPTX, DOCX...
+    private String format;      
     private Integer pageCount;
 
-    // Quiz info (null if resource lesson)
     private Integer quizId;
     private String quizTitle;
     private Integer durationMinutes;
     private Integer questionCount;
+    private Boolean completed;
+    private Boolean resourceCompleted;
+    private Boolean quizCompleted;
 
-    // Derived display type: VIDEO | DOCUMENT | QUIZ
     private String itemType;
 
     public ResCourseLessonDTO() {
@@ -72,6 +72,15 @@ public class ResCourseLessonDTO {
 
     public Integer getQuestionCount() { return questionCount; }
     public void setQuestionCount(Integer questionCount) { this.questionCount = questionCount; }
+
+    public Boolean getCompleted() { return completed; }
+    public void setCompleted(Boolean completed) { this.completed = completed; }
+
+    public Boolean getResourceCompleted() { return resourceCompleted; }
+    public void setResourceCompleted(Boolean resourceCompleted) { this.resourceCompleted = resourceCompleted; }
+
+    public Boolean getQuizCompleted() { return quizCompleted; }
+    public void setQuizCompleted(Boolean quizCompleted) { this.quizCompleted = quizCompleted; }
 
     public String getItemType() { return itemType; }
     public void setItemType(String itemType) { this.itemType = itemType; }

@@ -146,6 +146,7 @@ const Forum = () => {
         };
 
         loadForum();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [categoryId, currentPage]);
 
     const handlePageChange = (page) => {

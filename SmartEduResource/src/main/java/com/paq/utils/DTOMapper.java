@@ -477,11 +477,13 @@ public class DTOMapper {
             dto.setCreatedBy(toResUserDTO(quiz.getCreatedBy()));
         }
 
-        if (includeQuestions && quiz.getQuestionSet() != null) {
+        if (quiz.getQuestionSet() != null) {
             dto.setQuestionCount((int) quiz.getQuestionSet().stream()
                     .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
                     .count());
+        }
 
+        if (includeQuestions && quiz.getQuestionSet() != null) {
             dto.setQuestions(quiz.getQuestionSet().stream()
                     .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
                     .map(q -> toResQuestionDTO(q, includeCorrectAnswers))
@@ -507,10 +509,12 @@ public class DTOMapper {
         dto.setQuizId(question.getQuizId() != null ? question.getQuizId().getId() : null);
 
         if (question.getAnswerOptionSet() != null) {
-            dto.setAnswers(question.getAnswerOptionSet().stream()
+            List<ResAnswerOptionDTO> options = question.getAnswerOptionSet().stream()
                     .filter(a -> !Boolean.TRUE.equals(a.getIsDeleted()))
                     .map(a -> toResAnswerOptionDTO(a, includeCorrectAnswers))
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList());
+            dto.setAnswers(options);
+            dto.setOptions(options);
         }
 
         return dto;
@@ -684,7 +688,9 @@ public class DTOMapper {
             if (quiz.getQuestionSet() != null && Hibernate.isInitialized(quiz.getQuestionSet())) {
                 dto.setQuestionCount(quiz.getQuestionSet().size());
             }
-            dto.setItemType("QUIZ");
+            if (dto.getItemType() == null) {
+                dto.setItemType("QUIZ");
+            }
         }
 
         if (dto.getItemType() == null) {

@@ -7,7 +7,7 @@ export const endpoints = {
     'lecturer-register': '/register/lecturer',
     'profile': '/secure/profile',
     'resources': 'student/resources',
-    'resource-detail': (id) => `/resources/${id}`,
+    'resource-detail': (id) => `/student/resources/${id}`,
     'resource-related': (id) => `/student/resources/${id}/related`,
     'resource-interactions': (id) => `/student/resources/${id}/interactions`,
     'resource-interactions-secure': (id) => `/secure/student/resources/${id}/interactions`,
@@ -36,16 +36,19 @@ export const endpoints = {
     'student-notifications-read-all': '/secure/student/notifications',
     'student-notification-delete': (id) => `/secure/student/notifications/${id}`,
     'student-payments': '/secure/student/payments',
+    'momo-create-payment': (courseId) => `/secure/student/payments/momo/create?courseId=${courseId}`,
+    'momo-sync-payment': '/payments/momo/sync',
     'student-quiz-results': '/secure/student/quizzes/results',
-    "student-quiz-detail": (id) => `/student/quizzes/${id}`,
+    "student-quiz-detail": (id) => `/secure/student/quizzes/${id}`,
     "student-quiz-submit": (id) => `/secure/student/quizzes/${id}/submit`,
     'lesson-create': '/secure/lessons',
     'lesson-update': (id) => `/secure/lessons/${id}`,
     'lesson-delete': (id) => `/secure/lessons/${id}`,
+    'quizzes': '/secure/student/quizzes',
     'learning-paths': '/secure/student/learning-paths',
     'learning-path-generate': '/secure/student/learning-paths/generate',
     'learning-path-detail': (id) => `/secure/student/learning-paths/${id}`,
-    'quizzes': '/student/quizzes',
+    'public-quizzes': '/student/quizzes',
     'quiz-detail': (id) => `/quizzes/${id}`,
     'quiz-questions': (quizId) => `/secure/quizzes/${quizId}/questions`,
     'forum-categories': '/forum-categories',
@@ -117,7 +120,7 @@ export const endpoints = {
 
 export const authApis = () => {
     return axios.create({
-        baseURL: API_BASE_URL,
+        baseURL: 'http://localhost:8080/api',
         headers: {
             'Authorization': `Bearer ${cookies.load('token')}`
         }
@@ -125,5 +128,5 @@ export const authApis = () => {
 };
 
 export default axios.create({
-    baseURL: API_BASE_URL
+    baseURL: 'http://localhost:8080/api'
 });

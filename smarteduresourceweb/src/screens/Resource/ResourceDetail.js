@@ -83,15 +83,39 @@ const ResourceDetail = () => {
             setActionErr("");
 
             try {
-                const [resourceRes, relatedRes, interactionsRes] = await Promise.all([
+                const reqs = [
                     Apis.get(endpoints["resource-detail"](id)),
                     Apis.get(endpoints["resource-related"](id)),
                     Apis.get(endpoints["resource-interactions"](id))
-                ]);
+                ];
 
-                setResource(resourceRes.data.data);
-                setRelatedResources(relatedRes.data.data || []);
-                setInteractions(interactionsRes.data.data || []);
+                if (user) {
+                    reqs.push(authApis().get(endpoints["my-enrollments"]));
+                }
+
+                const results = await Promise.all(reqs);
+                const resourceData = results[0].data.data;
+                const relatedRes = results[1].data.data || [];
+                const interactionsRes = results[2].data.data || [];
+
+                let myEnrollments = [];
+                if (user && results[3]) {
+                    myEnrollments = results[3].data.data || [];
+                }
+
+                if (resourceData.paidCourses && resourceData.paidCourses.length > 0) {
+                    const isEnrolled = resourceData.paidCourses.some(course => 
+                        myEnrollments.some(enrollment => enrollment.courseId === course.id && enrollment.status === "SUCCESS")
+                    );
+                    if (isEnrolled) {
+                        resourceData.hasFreePath = true; // Unlock the resource
+                        resourceData.isEnrolled = true;  // Flag to show "Đã tham gia"
+                    }
+                }
+
+                setResource(resourceData);
+                setRelatedResources(relatedRes);
+                setInteractions(interactionsRes);
             } catch (ex) {
                 console.error(ex);
                 setErr(ex.response?.data?.message || "Không tìm thấy tài liệu.");
@@ -256,12 +280,31 @@ const ResourceDetail = () => {
     };
 
     const openResourceFile = () => {
+        // Only redirect to course page if resource is exclusively behind paid courses
+        if (isPaidCourseResource && !resource?.hasFreePath) {
+            nav(`/courses/${resource.paidCourses[0].id}`);
+            return;
+        }
         if (!resource?.fileUrl) return;
         window.open(resource.fileUrl, "_blank", "noopener,noreferrer");
     };
 
     const renderViewer = () => {
         const format = (resource?.format || "").toUpperCase();
+        const hasFreePath = resource?.hasFreePath !== false; // default true for safety
+
+        // Only lock if exclusively paid (no free path)
+        if (isPaidCourseResource && !hasFreePath) {
+            return (
+                <div className="rd-viewer-icon text-center px-4">
+                    <i className="bi bi-lock-fill d-block mb-2" />
+                    <div className="fw-semibold">Tài liệu thuộc khóa học trả phí</div>
+                    <div className="text-muted mt-1" style={{ fontSize: "0.9rem" }}>
+                        Đăng ký khóa học để xem đầy đủ nội dung tài liệu này.
+                    </div>
+                </div>
+            );
+        }
 
         if (resource?.fileUrl && format === "PDF") {
             return (
@@ -293,6 +336,8 @@ const ResourceDetail = () => {
     const categoryItems = [...(resource?.subjects || []), ...(resource?.topics || [])];
     const typeItems = resource?.types || [];
     const tagItems = resource?.tags || [];
+    const paidCourses = resource?.paidCourses || [];
+    const isPaidCourseResource = paidCourses.length > 0;
 
     if (loading) return <MySpinner />;
     if (err) return <Container className="py-5"><Alert variant="danger">{err}</Alert></Container>;
@@ -331,8 +376,10 @@ const ResourceDetail = () => {
                                     {resource.fileSize ? ` · ${formatFileSize(resource.fileSize)}` : ""}
                                 </small>
                             </div>
-                            <button className="rd-fullscreen-btn" onClick={openResourceFile} disabled={!resource.fileUrl}>
-                                {resource.fileUrl ? "Mở tài liệu" : "Chưa có file xem trước"}
+                            <button className="rd-fullscreen-btn" onClick={openResourceFile} disabled={!resource.fileUrl && !(isPaidCourseResource && !resource?.hasFreePath)}>
+                                {isPaidCourseResource && !resource?.hasFreePath
+                                    ? "Xem khóa học để truy cập"
+                                    : resource.fileUrl ? "Mở tài liệu" : "Chưa có file xem trước"}
                             </button>
                         </div>
 
@@ -537,6 +584,42 @@ const ResourceDetail = () => {
                                     ))}
                                 </div>
                             </div>
+
+                            {isPaidCourseResource && (
+                                <div className={`rd-tags-block ${resource?.isEnrolled ? "bg-light border" : "rd-paid-promo"}`}>
+                                    <div className="rd-tags-title">
+                                        {resource?.isEnrolled ? (
+                                            <><i className="bi bi-check-circle-fill text-success me-1" /> Đã tham gia khóa học</>
+                                        ) : (
+                                            <><i className="bi bi-star-fill" style={{ color: '#F59E0B', marginRight: 6 }} /> Có trong khóa học trả phí</>
+                                        )}
+                                    </div>
+                                    {!resource?.isEnrolled && resource?.hasFreePath !== false && (
+                                        <div className="text-muted mb-2" style={{ fontSize: '0.82rem' }}>
+                                            Tài liệu này có thể xem miễn phí. Đăng ký khóa học để trải nghiệm lộ trình đầy đủ, bài tập, quiz và hỗ trợ giảng viên.
+                                        </div>
+                                    )}
+                                    {!resource?.isEnrolled && resource?.hasFreePath === false && (
+                                        <div className="text-muted mb-2" style={{ fontSize: '0.82rem' }}>
+                                            Đăng ký khóa học để truy cập nội dung tài liệu này.
+                                        </div>
+                                    )}
+                                    <div className="d-flex flex-column gap-2">
+                                        {paidCourses.map(course => (
+                                            <Button
+                                                key={course.id}
+                                                variant={resource?.isEnrolled ? "primary" : "outline-primary"}
+                                                size="sm"
+                                                className="text-start"
+                                                onClick={() => nav(`/courses/${course.id}`)}
+                                            >
+                                                <i className="bi bi-mortarboard me-1" />
+                                                Xem khóa học: {course.name}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </Col>
                 </Row>

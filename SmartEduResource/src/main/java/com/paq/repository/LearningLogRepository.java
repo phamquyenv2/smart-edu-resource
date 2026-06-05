@@ -17,6 +17,8 @@ public interface LearningLogRepository {
 
     LearningLog getCompletedLog(int enrollmentId, int resourceId);
 
+    List<Integer> getCompletedResourceIdsByEnrollmentId(int enrollmentId);
+
     long countCompletedResourcesByEnrollmentId(int enrollmentId);
 
     List<LearningLog> getLearningLogsByUsername(String username);
