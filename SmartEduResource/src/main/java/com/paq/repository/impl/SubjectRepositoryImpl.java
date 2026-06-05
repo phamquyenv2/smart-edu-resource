@@ -57,9 +57,9 @@ public class SubjectRepositoryImpl implements SubjectRepository {
 
         Query<Subject> query = session.createQuery(q);
 
-        if (params != null) {
+        if (params != null && params.containsKey("page")) {
             int pageSize = this.env.getProperty("subjects.page_size", Integer.class);
-            int page = Integer.parseInt(params.getOrDefault("page", "1"));
+            int page = Integer.parseInt(params.get("page"));
             int start = (page - 1) * pageSize;
 
             query.setMaxResults(pageSize);

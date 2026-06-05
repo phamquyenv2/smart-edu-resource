@@ -14,6 +14,7 @@ import java.util.Map;
  */
 public interface StudentResourceService {
     List<ResResourceDTO> getResources(Map<String, String> params);
+    Long countResources(Map<String, String> params);
     ResResourceDTO getResourceById(int id);
     List<ResResourceDTO>getRelatedResources(int resourceId);
 

@@ -5,6 +5,8 @@
 package com.paq.utils;
 
 import java.util.Date;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 import org.springframework.stereotype.Component;
 
@@ -48,7 +50,7 @@ public class JwtUtils {
         signedJWT.sign(signer);
 
         return signedJWT.serialize();
-    }       
+    }
 
     public static String validateTokenAndGetUsername(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
@@ -61,5 +63,22 @@ public class JwtUtils {
             }
         }
         return null;
+    }
+
+    private static String getJwtSecret() {
+        String secret = System.getenv("JWT_SECRET");
+        if (secret != null && !secret.isBlank()) {
+            return secret;
+        }
+
+        try {
+            secret = ResourceBundle.getBundle("configs").getString("jwt.secret");
+            if (secret != null && !secret.isBlank()) {
+                return secret;
+            }
+        } catch (MissingResourceException ex) {
+        }
+
+        throw new IllegalStateException("Missing JWT secret. Set JWT_SECRET or configs.properties jwt.secret.");
     }
 }

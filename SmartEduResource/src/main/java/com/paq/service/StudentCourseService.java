@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public interface StudentCourseService {
 
-    List<ResCourseDTO> getCourses();
+    List<ResCourseDTO> getCourses(Map<String, String> params);
 
     ResCourseDTO getCourseById(int id);
 

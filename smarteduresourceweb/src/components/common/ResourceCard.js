@@ -53,9 +53,6 @@ const ResourceCard = ({ resource }) => {
                 <div className="desc">{r.description}</div>
                 <div className="res-card-footer">
                     <span className="footer-item">
-                        {formatViewCount(r.viewCount || 0)} lượt xem
-                    </span>
-                    <span className="footer-item">
                         {formatDate(r.createdAt)}
                     </span>
                 </div>

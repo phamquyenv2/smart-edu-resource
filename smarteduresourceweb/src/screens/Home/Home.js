@@ -25,9 +25,12 @@ const Home = () => {
                     Apis.get(endpoints["subjects"])
                 ]);
 
-                const resourceData = Array.isArray(resourcesRes.data)
+                const resourcePayload = Array.isArray(resourcesRes.data)
                     ? resourcesRes.data
                     : resourcesRes.data.data || [];
+                const resourceData = Array.isArray(resourcePayload)
+                    ? resourcePayload
+                    : resourcePayload.items || [];
 
                 const courseData = Array.isArray(coursesRes.data)
                     ? coursesRes.data
