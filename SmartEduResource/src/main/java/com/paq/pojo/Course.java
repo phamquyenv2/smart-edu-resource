@@ -23,6 +23,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -56,6 +57,11 @@ public class Course implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Integer id;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 255)
@@ -117,6 +123,14 @@ public class Course implements Serializable {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public String getName() {

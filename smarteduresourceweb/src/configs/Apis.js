@@ -26,7 +26,7 @@ export const endpoints = {
     'enroll-course': (id) => `/secure/student/courses/${id}/enroll`,
     'enrollments': (courseId) => `/secure/courses/${courseId}/enrollments`,
     'enroll-self': (courseId) => `/secure/courses/${courseId}/enroll`,
-    'my-enrollments': '/secure/student/my-courses',
+    'my-enrollments': '/secure/student/my-enrollments',
     'course-learn': (courseId) => `/secure/student/courses/${courseId}/learn`,
     'resource-complete': (resourceId) => `/secure/student/resources/${resourceId}/complete`,
     'course-lessons': (courseId) => `/secure/courses/${courseId}/lessons`,
