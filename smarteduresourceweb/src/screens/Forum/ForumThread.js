@@ -31,14 +31,6 @@ const ForumThread = () => {
                     Apis.get(endpoints["forum-posts"](threadId))
                 ]);
 
-                const threadData = Array.isArray(threadRes.data)
-                    ? threadRes.data
-                    : threadRes.data.data;
-
-                const postsData = Array.isArray(postsRes.data)
-                    ? postsRes.data
-                    : postsRes.data.data || [];
-
                 setThread(getData(threadRes, null));
                 setPosts(getData(postsRes, []));
             } catch (err) {

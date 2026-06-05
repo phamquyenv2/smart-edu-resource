@@ -48,7 +48,7 @@ export const endpoints = {
     'learning-paths': '/secure/student/learning-paths',
     'learning-path-generate': '/secure/student/learning-paths/generate',
     'learning-path-detail': (id) => `/secure/student/learning-paths/${id}`,
-    'quizzes': '/student/quizzes',
+    'public-quizzes': '/student/quizzes',
     'quiz-detail': (id) => `/quizzes/${id}`,
     'quiz-questions': (quizId) => `/secure/quizzes/${quizId}/questions`,
     'forum-categories': '/forum-categories',

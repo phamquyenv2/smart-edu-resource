@@ -42,51 +42,11 @@ const CourseLearn = () => {
 
     const [chatRoomId, setChatRoomId] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
-    // Group chat
-    const [groupMsgs, setGroupMsgs] = useState([]);
-    const [chatRooms, setChatRooms] = useState([]);
-    const [groupRoom, setGroupRoom] = useState(null);
-    const [dmRoom, setDmRoom] = useState(null);
-    const [dmMsgs, setDmMsgs] = useState([]);
-    const [dmInput, setDmInput] = useState("");
     const [chatInput, setChatInput] = useState("");
     const [chatLoading, setChatLoading] = useState(false);
     const chatEndRef = useRef(null);
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const getData = (res) => {
-        const raw = res.data?.data ?? res.data;
-
-        if (Array.isArray(raw)) return raw;
-
-        return raw?.items || raw?.content || raw?.data || [];
-    };
-
-    const normalizeMessage = (m) => {
-        const senderName =
-            m.sender?.fullName ||
-            m.user?.fullName ||
-            m.createdBy?.fullName ||
-            m.senderName ||
-            "Người dùng";
-
-        const senderId =
-            m.sender?.id ||
-            m.user?.id ||
-            m.createdBy?.id ||
-            m.senderId;
-
-        return {
-            id: m.id,
-            sender: senderName,
-            isInstructor: m.sender?.role === "LECTURER" || m.user?.role === "LECTURER" || m.createdBy?.role === "LECTURER",
-            isMine: senderId === user?.id,
-            content: m.content,
-            time: m.createdAt
-                ? new Date(m.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
-                : ""
-        };
-    };
 
     useEffect(() => {
         if (!user) {
@@ -94,6 +54,7 @@ const CourseLearn = () => {
             return;
         }
         loadLearnPage();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, user]);
 
     const loadLearnPage = async () => {
@@ -104,7 +65,6 @@ const CourseLearn = () => {
             const learnRes = await authApis().get(endpoints['course-learn'](id));
             const data = learnRes.data.data;
             setLearnData(data);
-            await loadChatRooms(data);
 
             if (data.chapters && data.chapters.length > 0) {
                 const expanded = {};
@@ -169,118 +129,9 @@ const CourseLearn = () => {
         } catch (ex) {
             console.error("Failed to send message:", ex);
             setChatInput(msgText); 
-    const loadChatRooms = async (courseData) => {
-        try {
-            const res = await authApis().get(endpoints["chat-rooms"]);
-            const rooms = getData(res);
-            setChatRooms(rooms);
-
-            const courseId = Number(id);
-
-            const group = rooms.find(r =>
-                Number(r.courseId) === Number(id) &&
-                (r.type === "CLASS" || r.type === "GROUP" || r.roomType === "CLASS" || r.roomType === "GROUP")
-            );
-
-            const dm = rooms.find(r =>
-                (r.courseId === courseId || r.course?.id === courseId) &&
-                (r.type === "DM" || r.roomType === "DM" || r.isGroup === false)
-            );
-
-            setGroupRoom(group || null);
-            setDmRoom(dm || null);
-
-            if (group?.createdBy?.fullName) {
-                setLearnData(prev => ({
-                    ...prev,
-                    lecturerName: group.createdBy.fullName,
-                    lecturerTitle: group.createdBy.email
-                }));
-            }
-
-            if (group?.id) {
-                const msgRes = await authApis().get(endpoints["chat-messages"](group.id));
-                setGroupMsgs(getData(msgRes).map(normalizeMessage));
-            } else {
-                setGroupMsgs([]);
-            }
-
-            if (dm?.id) {
-                const msgRes = await authApis().get(endpoints["chat-messages"](dm.id));
-                setDmMsgs(getData(msgRes).map(normalizeMessage));
-            } else {
-                setDmMsgs([]);
-            }
-        } catch (err) {
-            console.error(err);
-            setGroupMsgs([]);
-            setDmMsgs([]);
         }
     };
 
-    const toggleChapter = (chapterNum) => {
-        setExpandedChapters(prev => ({ ...prev, [chapterNum]: !prev[chapterNum] }));
-    };
-
-    const sendGroupMsg = async (e) => {
-        e.preventDefault();
-
-        if (!chatInput.trim()) return;
-
-        if (!groupRoom?.id) {
-            alert("Chưa có phòng thảo luận cho khóa học này.");
-            return;
-        }
-
-        try {
-            const res = await authApis().post(
-                endpoints["chat-send-message"](groupRoom.id),
-                {
-                    content: chatInput.trim()
-                }
-            );
-
-            const newMsg = normalizeMessage(res.data.data || res.data);
-
-            setGroupMsgs(prev => [...prev, newMsg]);
-            setChatInput("");
-
-            setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-        } catch (err) {
-            console.error(err);
-            alert("Gửi tin nhắn thất bại.");
-        }
-    };
-
-    const sendDmMsg = async (e) => {
-        e.preventDefault();
-
-        if (!dmInput.trim()) return;
-
-        if (!dmRoom?.id) {
-            alert("Chưa có phòng nhắn tin với giảng viên.");
-            return;
-        }
-
-        try {
-            const res = await authApis().post(
-                endpoints["chat-send-message"](dmRoom.id),
-                {
-                    content: dmInput.trim()
-                }
-            );
-
-            const newMsg = normalizeMessage(res.data.data || res.data);
-
-            setDmMsgs(prev => [...prev, newMsg]);
-            setDmInput("");
-
-            setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-        } catch (err) {
-            console.error(err);
-            alert("Gửi tin nhắn thất bại.");
-        }
-    };
 
     const toggleChapter = (chapterNum) => {
         setExpandedChapters(prev => ({ ...prev, [chapterNum]: !prev[chapterNum] }));
@@ -680,65 +531,6 @@ const CourseLearn = () => {
                                         )}
                                     </div>
                                 )}
-                                    ))}
-                                    <div ref={chatEndRef} />
-                                </div>
-                                <Form className="cl-chat-input" onSubmit={sendGroupMsg}>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Gửi tin nhắn đến cả lớp..."
-                                        value={chatInput}
-                                        onChange={e => setChatInput(e.target.value)}
-                                    />
-                                    <Button type="submit" className="cl-chat-send">Gửi</Button>
-                                </Form>
-                            </div>
-                        )}
-
-                        {/* Tab: DM Instructor */}
-                        {activeTab === "dm" && (
-                            <div className="cl-chat-panel">
-                                <div className="cl-messages">
-                                    {dmMsgs.length === 0 ? (
-                                        <div className="text-muted p-3">
-                                            Chưa có tin nhắn với giảng viên.
-                                        </div>
-                                    ) : (
-                                        dmMsgs.map(m => (
-                                            <div key={m.id} className={`cl-msg-row ${m.isMine ? "mine" : ""}`}>
-                                                {!m.isMine && (
-                                                    <div className={`cl-msg-avatar ${m.isInstructor ? "instructor" : ""}`}>
-                                                        {m.sender.charAt(0)}
-                                                    </div>
-                                                )}
-                                                <div className="cl-msg-body">
-                                                    {!m.isMine && (
-                                                        <span className={`cl-msg-sender ${m.isInstructor ? "instructor" : ""}`}>
-                                                            {m.sender}{m.isInstructor && " · Giảng viên"}
-                                                        </span>
-                                                    )}
-                                                    <div className={`cl-msg-bubble ${m.isMine ? "mine" : ""}`}>
-                                                        {m.content}
-                                                        <span className="cl-msg-time">{m.time}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                    <div ref={chatEndRef} />
-                                </div>
-
-                                <Form className="cl-chat-input" onSubmit={sendDmMsg}>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder={`Gửi tin nhắn đến ${learnData.lecturerName || "giảng viên"}...`}
-                                        value={dmInput}
-                                        onChange={e => setDmInput(e.target.value)}
-                                    />
-                                    <Button type="submit" className="cl-chat-send">Gửi</Button>
-                                </Form>
-                            </div>
-                        )}
 
                                 {activeTab === "dm" && (
                                     <div className="cl-dm-panel">
