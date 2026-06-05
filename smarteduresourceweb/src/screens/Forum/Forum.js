@@ -276,9 +276,9 @@ const Forum = () => {
                                     </h6>
 
                                     <small className="text-muted">
-                                        {t.authorFullName || t.authorName || t.username || t.author?.fullName || "Người dùng"}
+                                        {t.createdBy.fullName || "Người dùng"}
                                         {" · "}
-                                        {t.createdAt || t.created_at || ""}
+                                        {t.createdAt? new Date(t.createdAt).toLocaleDateString("vi-VN") : ""}
                                     </small>
                                 </div>
 

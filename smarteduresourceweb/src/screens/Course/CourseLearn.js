@@ -6,12 +6,6 @@ import { MyUserContext } from "../../configs/Context";
 import MySpinner from "../../components/common/MySpinner";
 import { authApis, endpoints } from "../../configs/Apis";
 
-// Mock group chat messages for the course group
-const MOCK_GROUP_MSGS = [
-    { id: 1, sender: "Giảng viên", isInstructor: true, isMine: false, content: "Chào cả lớp! Hãy hoàn thành bài tập và đặt câu hỏi tại đây nhé.", time: "09:00" },
-    { id: 2, sender: "Nguyễn Văn B", isInstructor: false, isMine: false, content: "Thầy ơi em không hiểu phần dependency injection ạ.", time: "09:30" },
-    { id: 3, sender: "Bạn", isInstructor: false, isMine: true, content: "Em cũng không hiểu phần này, thầy giải thích thêm được không ạ?", time: "09:32" },
-];
 
 const CourseLearn = () => {
     const { id } = useParams();
@@ -33,9 +27,48 @@ const CourseLearn = () => {
     const [activeTab, setActiveTab] = useState("group-chat");
 
     // Group chat
-    const [groupMsgs, setGroupMsgs] = useState(MOCK_GROUP_MSGS);
+    const [groupMsgs, setGroupMsgs] = useState([]);
+    const [chatRooms, setChatRooms] = useState([]);
+    const [groupRoom, setGroupRoom] = useState(null);
+    const [dmRoom, setDmRoom] = useState(null);
+    const [dmMsgs, setDmMsgs] = useState([]);
+    const [dmInput, setDmInput] = useState("");
     const [chatInput, setChatInput] = useState("");
     const chatEndRef = useRef(null);
+
+    const getData = (res) => {
+        const raw = res.data?.data ?? res.data;
+
+        if (Array.isArray(raw)) return raw;
+
+        return raw?.items || raw?.content || raw?.data || [];
+    };
+
+    const normalizeMessage = (m) => {
+        const senderName =
+            m.sender?.fullName ||
+            m.user?.fullName ||
+            m.createdBy?.fullName ||
+            m.senderName ||
+            "Người dùng";
+
+        const senderId =
+            m.sender?.id ||
+            m.user?.id ||
+            m.createdBy?.id ||
+            m.senderId;
+
+        return {
+            id: m.id,
+            sender: senderName,
+            isInstructor: m.sender?.role === "LECTURER" || m.user?.role === "LECTURER" || m.createdBy?.role === "LECTURER",
+            isMine: senderId === user?.id,
+            content: m.content,
+            time: m.createdAt
+                ? new Date(m.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+                : ""
+        };
+    };
 
     useEffect(() => {
         if (!user) {
@@ -53,6 +86,7 @@ const CourseLearn = () => {
             const response = await authApis().get(endpoints['course-learn'](id));
             const data = response.data.data;
             setLearnData(data);
+            await loadChatRooms(data);
 
             // Auto-expand first chapter and select first lesson
             if (data.chapters && data.chapters.length > 0) {
@@ -69,23 +103,117 @@ const CourseLearn = () => {
         }
     };
 
+    const loadChatRooms = async (courseData) => {
+        try {
+            const res = await authApis().get(endpoints["chat-rooms"]);
+            const rooms = getData(res);
+            setChatRooms(rooms);
+
+            const courseId = Number(id);
+
+            const group = rooms.find(r =>
+                Number(r.courseId) === Number(id) &&
+                (r.type === "CLASS" || r.type === "GROUP" || r.roomType === "CLASS" || r.roomType === "GROUP")
+            );
+
+            const dm = rooms.find(r =>
+                (r.courseId === courseId || r.course?.id === courseId) &&
+                (r.type === "DM" || r.roomType === "DM" || r.isGroup === false)
+            );
+
+            setGroupRoom(group || null);
+            setDmRoom(dm || null);
+
+            if (group?.createdBy?.fullName) {
+                setLearnData(prev => ({
+                    ...prev,
+                    lecturerName: group.createdBy.fullName,
+                    lecturerTitle: group.createdBy.email
+                }));
+            }
+
+            if (group?.id) {
+                const msgRes = await authApis().get(endpoints["chat-messages"](group.id));
+                setGroupMsgs(getData(msgRes).map(normalizeMessage));
+            } else {
+                setGroupMsgs([]);
+            }
+
+            if (dm?.id) {
+                const msgRes = await authApis().get(endpoints["chat-messages"](dm.id));
+                setDmMsgs(getData(msgRes).map(normalizeMessage));
+            } else {
+                setDmMsgs([]);
+            }
+        } catch (err) {
+            console.error(err);
+            setGroupMsgs([]);
+            setDmMsgs([]);
+        }
+    };
+
     const toggleChapter = (chapterNum) => {
         setExpandedChapters(prev => ({ ...prev, [chapterNum]: !prev[chapterNum] }));
     };
 
-    const sendGroupMsg = (e) => {
+    const sendGroupMsg = async (e) => {
         e.preventDefault();
+
         if (!chatInput.trim()) return;
-        setGroupMsgs(prev => [...prev, {
-            id: Date.now(),
-            sender: "Bạn",
-            isInstructor: false,
-            isMine: true,
-            content: chatInput,
-            time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-        }]);
-        setChatInput("");
-        setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+        if (!groupRoom?.id) {
+            alert("Chưa có phòng thảo luận cho khóa học này.");
+            return;
+        }
+
+        try {
+            const res = await authApis().post(
+                endpoints["chat-send-message"](groupRoom.id),
+                {
+                    content: chatInput.trim()
+                }
+            );
+
+            const newMsg = normalizeMessage(res.data.data || res.data);
+
+            setGroupMsgs(prev => [...prev, newMsg]);
+            setChatInput("");
+
+            setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+        } catch (err) {
+            console.error(err);
+            alert("Gửi tin nhắn thất bại.");
+        }
+    };
+
+    const sendDmMsg = async (e) => {
+        e.preventDefault();
+
+        if (!dmInput.trim()) return;
+
+        if (!dmRoom?.id) {
+            alert("Chưa có phòng nhắn tin với giảng viên.");
+            return;
+        }
+
+        try {
+            const res = await authApis().post(
+                endpoints["chat-send-message"](dmRoom.id),
+                {
+                    content: dmInput.trim()
+                }
+            );
+
+            const newMsg = normalizeMessage(res.data.data || res.data);
+
+            setDmMsgs(prev => [...prev, newMsg]);
+            setDmInput("");
+
+            setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+        } catch (err) {
+            console.error(err);
+            alert("Gửi tin nhắn thất bại.");
+        }
     };
 
     const getLessonIcon = (lesson) => {
@@ -354,25 +482,46 @@ const CourseLearn = () => {
 
                         {/* Tab: DM Instructor */}
                         {activeTab === "dm" && (
-                            <div className="cl-dm-panel">
-                                <div className="cl-dm-info">
-                                    <div className="cl-dm-avatar">{(learnData.lecturerName || "G").charAt(0)}</div>
-                                    <div>
-                                        <div className="cl-dm-name">{learnData.lecturerName || "Giảng viên"}</div>
-                                        {learnData.lecturerTitle && (
-                                            <div className="cl-dm-title">{learnData.lecturerTitle}</div>
-                                        )}
-                                    </div>
+                            <div className="cl-chat-panel">
+                                <div className="cl-messages">
+                                    {dmMsgs.length === 0 ? (
+                                        <div className="text-muted p-3">
+                                            Chưa có tin nhắn với giảng viên.
+                                        </div>
+                                    ) : (
+                                        dmMsgs.map(m => (
+                                            <div key={m.id} className={`cl-msg-row ${m.isMine ? "mine" : ""}`}>
+                                                {!m.isMine && (
+                                                    <div className={`cl-msg-avatar ${m.isInstructor ? "instructor" : ""}`}>
+                                                        {m.sender.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <div className="cl-msg-body">
+                                                    {!m.isMine && (
+                                                        <span className={`cl-msg-sender ${m.isInstructor ? "instructor" : ""}`}>
+                                                            {m.sender}{m.isInstructor && " · Giảng viên"}
+                                                        </span>
+                                                    )}
+                                                    <div className={`cl-msg-bubble ${m.isMine ? "mine" : ""}`}>
+                                                        {m.content}
+                                                        <span className="cl-msg-time">{m.time}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                    <div ref={chatEndRef} />
                                 </div>
-                                <p className="cl-dm-hint">
-                                    Tin nhắn riêng với giảng viên sẽ được xử lý tại trang Chat.
-                                </p>
-                                <Button
-                                    className="cl-dm-open-btn"
-                                    onClick={() => nav('/chat')}
-                                >
-                                    Mở trang nhắn tin
-                                </Button>
+
+                                <Form className="cl-chat-input" onSubmit={sendDmMsg}>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder={`Gửi tin nhắn đến ${learnData.lecturerName || "giảng viên"}...`}
+                                        value={dmInput}
+                                        onChange={e => setDmInput(e.target.value)}
+                                    />
+                                    <Button type="submit" className="cl-chat-send">Gửi</Button>
+                                </Form>
                             </div>
                         )}
 
