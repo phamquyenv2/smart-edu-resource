@@ -126,7 +126,7 @@ export const endpoints = {
 
 export const authApis = () => {
     return axios.create({
-        baseURL: 'http://localhost:8081/api/',
+        baseURL: 'API_BASE_URL',
         headers: {
             'Authorization': `Bearer ${cookies.load('token')}`
         }
@@ -134,6 +134,6 @@ export const authApis = () => {
 };
 
 export default axios.create({
-    baseURL: 'http://localhost:8081/api/'
+    baseURL: 'API_BASE_URL'
 
 });
