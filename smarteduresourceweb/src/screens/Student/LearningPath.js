@@ -126,10 +126,10 @@ const LearningPath = () => {
 
     const getItemColor = (type) => {
         switch (type) {
-            case "COURSE": return "#4338CA";
-            case "RESOURCE": return "#059669";
-            case "QUIZ": return "#D97706";
-            default: return "#64748B";
+            case "COURSE": return "linear-gradient(135deg, #4338CA, #6366F1)"; // Primary purple
+            case "RESOURCE": return "linear-gradient(135deg, #7C3AED, #8B5CF6)"; // Violet
+            case "QUIZ": return "linear-gradient(135deg, #9333EA, #A855F7)"; // Fuchsia
+            default: return "linear-gradient(135deg, #64748B, #94A3B8)";
         }
     };
 
@@ -278,12 +278,12 @@ const LearningPath = () => {
                                                         <div className="lp-timeline-card-header">
                                                             <div>
                                                                 <div className="d-flex align-items-center gap-2 mb-1">
-                                                                    <Badge
-                                                                        className="lp-type-badge"
+                                                                    <span
+                                                                        className="badge lp-type-badge"
                                                                         style={{ background: getItemColor(item.itemType), color: '#fff' }}
                                                                     >
                                                                         {getItemLabel(item.itemType)}
-                                                                    </Badge>
+                                                                    </span>
                                                                     {item.isRequired && (
                                                                         <Badge bg="danger" className="lp-required-badge">Bắt buộc</Badge>
                                                                     )}

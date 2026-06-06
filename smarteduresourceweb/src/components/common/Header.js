@@ -200,7 +200,7 @@ const Header = () => {
                                             <NavDropdown.Item as={Link} to="/payments">Lịch sử thanh toán</NavDropdown.Item>
                                         </>
                                     )}
-                                    {user.role === "LECTURER" && (
+                                    {user.role === "LECTURER" && user.lecturerApproved === true && (
                                         <NavDropdown.Item as={Link} to="/lecturer/dashboard">Quản lý Giảng viên</NavDropdown.Item>
                                     )}
                                     {user.role === "ADMIN" && (

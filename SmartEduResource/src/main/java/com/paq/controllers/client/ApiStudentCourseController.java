@@ -78,28 +78,5 @@ public class ApiStudentCourseController {
         return ResponseEntity.ok(res);
     }
 
-    @PostMapping("/secure/student/courses/{id}/enroll")
-    public ResponseEntity<ResResponse<ResEnrollmentDTO>> enrollCourse(
-            @PathVariable(value = "id") int id,
-            Principal principal) {
 
-        ResResponse<ResEnrollmentDTO> res = new ResResponse<>();
-        res.setStatusCode(HttpStatus.OK.value());
-        res.setMessage("Enroll course successfully");
-        res.setData(this.studentCourseService.enrollCourse(principal.getName(), id));
-
-        return ResponseEntity.ok(res);
-    }
-
-    @GetMapping("/secure/student/my-courses")
-    public ResponseEntity<ResResponse<List<ResEnrollmentDTO>>> getMyCourses(
-            Principal principal) {
-
-        ResResponse<List<ResEnrollmentDTO>> res = new ResResponse<>();
-        res.setStatusCode(HttpStatus.OK.value());
-        res.setMessage("Get my courses successfully");
-        res.setData(this.studentCourseService.getMyCourses(principal.getName()));
-
-        return ResponseEntity.ok(res);
-    }
 }

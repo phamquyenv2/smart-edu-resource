@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.paq.pojo.ChatRoom;
 import com.paq.pojo.Course;
+import com.paq.pojo.Lecturer;
 import com.paq.pojo.Payment;
 import com.paq.pojo.Quiz;
 import com.paq.pojo.Resource;
@@ -276,7 +277,16 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     private boolean isLecturer(User user) {
-        return user != null && user.getRole() == RoleEnum.LECTURER;
+        if (user == null || user.getRole() != RoleEnum.LECTURER) {
+            return false;
+        }
+
+        Lecturer lecturer = user.getLecturer();
+        if (lecturer == null) {
+            lecturer = this.userRepo.getLecturerByUserId(user.getId());
+        }
+
+        return lecturer != null && Boolean.TRUE.equals(lecturer.getIsApprove());
     }
 
     private boolean isStudent(User user) {

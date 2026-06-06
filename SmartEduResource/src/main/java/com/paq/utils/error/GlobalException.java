@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.paq.pojo.response.ResResponse;
 
 import jakarta.persistence.NoResultException;
+import jakarta.persistence.OptimisticLockException;
 
 @RestControllerAdvice
 public class GlobalException {
@@ -113,6 +115,15 @@ public class GlobalException {
     public ResponseEntity<ResResponse<Object>> handleDataIntegrityViolation(Exception ex) {
         return buildResponse(HttpStatus.CONFLICT, "Data Integrity Violation",
                 "Dữ liệu đã tồn tại hoặc vi phạm ràng buộc hệ thống.");
+    }
+
+    @ExceptionHandler(value = {
+        ObjectOptimisticLockingFailureException.class,
+        OptimisticLockException.class
+    })
+    public ResponseEntity<ResResponse<Object>> handleOptimisticLockingFailure(Exception ex) {
+        return buildResponse(HttpStatus.CONFLICT, "Conflict",
+                "Dữ liệu đã bị cập nhật bởi một người dùng khác. Vui lòng làm mới trang và thử lại.");
     }
 
     @ExceptionHandler(ResponseStatusException.class)

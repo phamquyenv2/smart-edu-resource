@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { useContext, useReducer } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import cookies from "react-cookies";
 
@@ -56,8 +56,23 @@ import LecturerResult from "./screens/Lecturer/LecturerResult";
 
 const AppLayout = () => {
     const { pathname } = useLocation();
+    const [user] = useContext(MyUserContext);
     const isFullscreen = /^\/courses\/\d+\/learn$/.test(pathname);
     const isDashboard = pathname.startsWith('/admin') || pathname.startsWith('/lecturer');
+    const isApprovedLecturer = user?.role === "ADMIN"
+        || (user?.role === "LECTURER" && user?.lecturerApproved === true);
+
+    const lecturerPage = (children) => {
+        if (!user) {
+            return <Navigate to="/login" replace />;
+        }
+
+        if (!isApprovedLecturer) {
+            return <Navigate to="/" replace />;
+        }
+
+        return <LecturerLayout>{children}</LecturerLayout>;
+    };
 
     if (isDashboard) {
         return (
@@ -70,17 +85,17 @@ const AppLayout = () => {
                 <Route path="/admin/forum" element={<AdminLayout><AdminForum /></AdminLayout>} />
                 <Route path="/admin/reports" element={<Navigate to="/admin/dashboard" replace />} />
 
-                <Route path="/lecturer/dashboard" element={<LecturerLayout><LecturerDashboard /></LecturerLayout>} />
-                <Route path="/lecturer/courses" element={<LecturerLayout><LecturerCourse /></LecturerLayout>} />
-                <Route path="/lecturer/courses/:id/lessons" element={<LecturerLayout><LecturerLesson /></LecturerLayout>} />
-                <Route path="/lecturer/resources" element={<LecturerLayout><LecturerResource /></LecturerLayout>} />
-                <Route path="/lecturer/resources/create" element={<LecturerLayout><LecturerResourceForm /></LecturerLayout>} />
-                <Route path="/lecturer/resources/:id/edit" element={<LecturerLayout><LecturerResourceForm /></LecturerLayout>} />
-                <Route path="/lecturer/quizzes" element={<LecturerLayout><LecturerQuiz /></LecturerLayout>} />
-                <Route path="/lecturer/chat" element={<LecturerLayout><LecturerChat /></LecturerLayout>} />
-                <Route path="/lecturer/chat/:id/participants" element={<LecturerLayout><LecturerChatParticipants /></LecturerLayout>} />
-                <Route path="/lecturer/chat/messages" element={<LecturerLayout><Chat /></LecturerLayout>} />
-                <Route path="/lecturer/results" element={<LecturerLayout><LecturerResult /></LecturerLayout>} />
+                <Route path="/lecturer/dashboard" element={lecturerPage(<LecturerDashboard />)} />
+                <Route path="/lecturer/courses" element={lecturerPage(<LecturerCourse />)} />
+                <Route path="/lecturer/courses/:id/lessons" element={lecturerPage(<LecturerLesson />)} />
+                <Route path="/lecturer/resources" element={lecturerPage(<LecturerResource />)} />
+                <Route path="/lecturer/resources/create" element={lecturerPage(<LecturerResourceForm />)} />
+                <Route path="/lecturer/resources/:id/edit" element={lecturerPage(<LecturerResourceForm />)} />
+                <Route path="/lecturer/quizzes" element={lecturerPage(<LecturerQuiz />)} />
+                <Route path="/lecturer/chat" element={lecturerPage(<LecturerChat />)} />
+                <Route path="/lecturer/chat/:id/participants" element={lecturerPage(<LecturerChatParticipants />)} />
+                <Route path="/lecturer/chat/messages" element={lecturerPage(<Chat />)} />
+                <Route path="/lecturer/results" element={lecturerPage(<LecturerResult />)} />
             </Routes>
         );
     }
